@@ -12,7 +12,7 @@ A small web app that helps you build a class routine and find conflict-free week
 ## How to run
 
 1. Open the project folder
-2. Start the app with `./run.sh`
+2. Start the app with `./run.sh` on Linux or `run.bat` on Windows
 3. Open `http://127.0.0.1:8000` in your browser
 
 ## Notes
