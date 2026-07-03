@@ -31,10 +31,10 @@ call "%ACTIVATE_SCRIPT%"
 :: 3. Install all the dependencies
 echo Installing dependencies...
 python -m pip install --upgrade pip
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 
 :: 4. Run the application
 echo Starting Routine Schedule Optimizer Server on http://127.0.0.1:8000 ...
-uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 
 endlocal
