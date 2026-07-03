@@ -1,0 +1,217 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg-primary: #080B11;
+  --bg-secondary: #111622;
+  --bg-tertiary: #1A2133;
+  --text-primary: #F3F4F6;
+  --text-secondary: #9CA3AF;
+  --accent: #6366F1;
+  --accent-glow: rgba(99, 102, 241, 0.15);
+  --border-color: rgba(255, 255, 255, 0.06);
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Glassmorphism Class */
+.glass {
+  background: rgba(17, 22, 34, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+}
+
+.glass-input {
+  background: rgba(8, 11, 17, 0.5);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+.glass-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+  outline: none;
+}
+
+.font-mono-custom {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #A5B4FC 0%, #6366F1 50%, #4F46E5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Calendar Styling Transposed */
+.calendar-container {
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background-color: rgba(255, 255, 255, 0.01);
+}
+
+.calendar-header-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  border-bottom: 1px solid var(--border-color);
+  padding: 12px 0;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.calendar-time-ticks {
+  display: flex;
+  justify-content: space-between;
+  padding: 0;
+  position: relative;
+}
+
+.calendar-time-ticks span {
+  transform: translateX(-50%);
+  display: inline-block;
+  font-size: 0.75rem;
+}
+
+.calendar-time-ticks span:first-child {
+  transform: none;
+}
+
+.calendar-time-ticks span:last-child {
+  transform: translateX(-100%);
+}
+
+.day-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  align-items: center;
+  position: relative;
+}
+
+.day-row:last-child {
+  border-bottom: none;
+}
+
+.day-row-label {
+  padding-left: 16px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  min-height: 80px;
+}
+
+.day-row-timeline {
+  position: relative;
+  height: 80px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+/* Vertical hour grid lines overlaying columns */
+.vertical-grid-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-right: 1px dashed rgba(255, 255, 255, 0.04);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Class card blocks (horizontal) */
+.class-block-horizontal {
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  color: #FFFFFF;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border-left: 3px solid rgba(255, 255, 255, 0.4);
+  z-index: 10;
+}
+
+.class-block-horizontal:hover {
+  transform: translateY(-2px);
+  z-index: 20;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* Animated glow buttons */
+.btn-glow {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.btn-glow::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: skewX(-25deg);
+  transition: 0.75s;
+}
+
+.btn-glow:hover::after {
+  left: 125%;
+}
+
+/* Course colors list for rendering */
+.course-color-0 { background: linear-gradient(135deg, #4F46E5, #6366F1); }
+.course-color-1 { background: linear-gradient(135deg, #059669, #10B981); }
+.course-color-2 { background: linear-gradient(135deg, #DC2626, #EF4444); }
+.course-color-3 { background: linear-gradient(135deg, #D97706, #F59E0B); }
+.course-color-4 { background: linear-gradient(135deg, #7C3AED, #8B5CF6); }
+.course-color-5 { background: linear-gradient(135deg, #2563EB, #3B82F6); }
+.course-color-6 { background: linear-gradient(135deg, #0891B2, #06B6D4); }
+.course-color-7 { background: linear-gradient(135deg, #DB2777, #EC4899); }
+.course-color-fallback { background: linear-gradient(135deg, #4B5563, #6B7280); }

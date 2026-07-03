@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UIU Routine & Schedule Optimizer</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brandBg: '#080B11',
+            brandCard: '#111622',
+            brandBorder: 'rgba(255, 255, 255, 0.06)',
+            brandAccent: '#6366F1',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-brandBg text-gray-100 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="border-b border-brandBorder py-4 px-6 lg:px-12 flex justify-between items-center glass sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+        <i class="fa-solid fa-route text-white text-lg"></i>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight"> UIU <span class="gradient-text">Routine Optimizer</span></h1>
+        <p class="text-xs text-gray-400">Generate conflict-free weekly combinations</p>
+      </div>
+    </div>
+    <div class="flex gap-3">
+      <button id="btn-demo" class="px-4 py-2 text-xs font-semibold rounded-lg bg-gray-800 hover:bg-gray-700 text-indigo-300 border border-indigo-500/30 transition-all flex items-center gap-2">
+        <i class="fa-solid fa-magic-wand-sparkles"></i> Load Demo Data
+      </button>
+      <a href="https://github.com/itsnotTalha/" target="_blank" class="px-3 py-2 text-xs rounded-lg bg-brandCard border border-brandBorder hover:border-gray-600 transition-all flex items-center justify-center">
+        <i class="fa-brands fa-github text-gray-300 text-base"></i>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-8xl mx-auto w-full p-4 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+    
+    <!-- Left Input Panel -->
+    <section class="lg:col-span-4 flex flex-col gap-6">
+      <div class="glass rounded-2xl p-6 flex flex-col gap-4">
+        <div class="flex justify-between items-center">
+          <h2 class="text-lg font-semibold flex items-center gap-2">
+            <i class="fa-solid fa-book-open text-indigo-400"></i> Course Definitions
+          </h2>
+          <span id="course-count" class="text-xs px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-500/20 font-medium">0 Courses</span>
+        </div>
+        
+        <p class="text-xs text-gray-400 leading-relaxed">
+          Add the courses you want to take. Paste the raw sections list for each. The engine will pick exactly one section for each course with no time overlaps.
+        </p>
+
+        <!-- Course Cards List -->
+        <div id="course-list-container" class="flex flex-col gap-4 max-h-[500px] overflow-y-auto pr-1">
+          <!-- Dynamically inserted course cards -->
+        </div>
+
+        <!-- Add Course Button -->
+        <button id="btn-add-course" class="w-full py-3 rounded-xl border border-dashed border-gray-700 hover:border-indigo-500 hover:text-indigo-400 text-gray-400 text-sm font-medium transition-all flex items-center justify-center gap-2 bg-brandCard/35 hover:bg-brandCard">
+          <i class="fa-solid fa-plus-circle"></i> Add Another Course
+        </button>
+
+        <!-- Optimize Button -->
+        <button id="btn-optimize" class="btn-glow w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20">
+          <i class="fa-solid fa-compass-drafting"></i> Optimize Routine
+        </button>
+      </div>
+
+      <!-- Parsing Guide -->
+      <div class="glass rounded-2xl p-6 flex flex-col gap-3">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Format Guidelines</h3>
+        <pre class="text-[10px] font-mono-custom text-indigo-200/80 bg-black/40 p-3 rounded-lg border border-brandBorder leading-relaxed overflow-x-auto">
+[Section Name]
+[Faculty Name]
+[Day] [Start Time]-[End Time]
+[Day] [Start Time]-[End Time]
+
+Example:
+K
+Muhammad Sibgatullah Zunnun
+Sunday 12:31-13:50
+Wednesday 12:31-13:50</pre>
+      </div>
+    </section>
+
+    <!-- Right Output Panel -->
+    <section class="lg:col-span-8 flex flex-col gap-6">
+      
+      <!-- Empty State -->
+      <div id="empty-state" class="glass rounded-2xl p-12 flex-1 flex flex-col items-center justify-center text-center gap-4 min-h-[500px]">
+        <div class="h-20 w-20 rounded-full bg-indigo-950/40 border border-indigo-500/20 flex items-center justify-center text-indigo-400 text-3xl animate-pulse">
+          <i class="fa-solid fa-calendar-days"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-200">No Optimized Schedules Yet</h3>
+        <p class="text-sm text-gray-400 max-w-md">
+          Define your courses and sections on the left, then click <strong class="text-indigo-400">Optimize Routine</strong> to generate all conflict-free variations.
+        </p>
+      </div>
+
+      <!-- Error State -->
+      <div id="error-state" class="hidden glass border-red-500/30 bg-red-950/20 rounded-2xl p-6 flex items-start gap-4">
+        <div class="h-10 w-10 rounded-lg bg-red-900/50 flex items-center justify-center text-red-400 flex-shrink-0">
+          <i class="fa-solid fa-circle-exclamation text-lg"></i>
+        </div>
+        <div>
+          <h4 class="font-bold text-red-400 text-sm">Optimization Failed</h4>
+          <p id="error-message" class="text-xs text-red-300 mt-1 leading-relaxed"></p>
+        </div>
+      </div>
+
+      <!-- Results View -->
+      <div id="results-view" class="hidden flex-1 flex flex-col gap-6">
+        
+        <!-- Results Header -->
+        <div class="glass rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h3 class="text-lg font-bold flex items-center gap-2 text-indigo-300">
+              <i class="fa-solid fa-check-circle text-emerald-400"></i> Optimization Complete
+            </h3>
+            <p id="combinations-count" class="text-xs text-gray-400 mt-0.5">Found 0 conflict-free schedule combinations.</p>
+          </div>
+          
+          <!-- Option Selector -->
+          <div class="flex items-center gap-2 overflow-x-auto py-1 max-w-full" id="option-selector-container">
+            <!-- Dynamically generated schedule option pills -->
+          </div>
+        </div>
+
+        <!-- Schedule Calendar Card -->
+        <div class="glass rounded-2xl p-6 flex flex-col gap-4 overflow-hidden">
+          
+          <div class="flex justify-between items-center">
+            <h4 class="font-semibold text-sm flex items-center gap-2">
+              <i class="fa-solid fa-calendar-week text-indigo-400"></i> Weekly Calendar Grid
+            </h4>
+            <div class="flex items-center gap-4 text-xs text-gray-400">
+              <div class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-indigo-500"></span> Classes</div>
+              <div class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded bg-black/40 border border-brandBorder"></span> Gaps</div>
+            </div>
+          </div>
+
+          <!-- Calendar Wrapper -->
+          <div class="overflow-x-auto w-full border border-brandBorder rounded-xl bg-black/25">
+            <div class="min-w-[850px] p-4">
+              
+              <!-- Calendar Header (Times) -->
+              <div class="calendar-header-row">
+                <div class="pl-4">Day \ Time</div>
+                <div class="calendar-time-ticks text-[10px]" id="calendar-time-header">
+                  <!-- Time ticks (08:00 - 20:00) generated by JS -->
+                </div>
+              </div>
+
+              <!-- Calendar Grid body (Days as Rows, starting Saturday) -->
+              <div class="calendar-container relative" id="calendar-grid-body">
+                <!-- Vertical hour grid lines will be inserted here by JS -->
+
+                <div class="day-row">
+                  <div class="day-row-label">Saturday</div>
+                  <div class="day-row-timeline" id="row-Saturday"></div>
+                </div>
+                <div class="day-row">
+                  <div class="day-row-label">Sunday</div>
+                  <div class="day-row-timeline" id="row-Sunday"></div>
+                </div>
+                <div class="day-row">
+                  <div class="day-row-label">Monday</div>
+                  <div class="day-row-timeline" id="row-Monday"></div>
+                </div>
+                <div class="day-row">
+                  <div class="day-row-label">Tuesday</div>
+                  <div class="day-row-timeline" id="row-Tuesday"></div>
+                </div>
+                <div class="day-row">
+                  <div class="day-row-label">Wednesday</div>
+                  <div class="day-row-timeline" id="row-Wednesday"></div>
+                </div>
+                <div class="day-row">
+                  <div class="day-row-label">Thursday</div>
+                  <div class="day-row-timeline" id="row-Thursday"></div>
+                </div>
+                <div class="day-row">
+                  <div class="day-row-label">Friday</div>
+                  <div class="day-row-timeline" id="row-Friday"></div>
+                </div>
+              </div>
+              
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Details Modal -->
+  <div id="details-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black/60 backdrop-blur-sm transition-all duration-300">
+    <div class="glass max-w-md w-full mx-4 rounded-2xl border border-brandBorder shadow-2xl p-6 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+      <div class="flex justify-between items-start">
+        <h3 id="modal-course-name" class="text-xl font-bold text-indigo-300">Course Name</h3>
+        <button id="modal-close" class="text-gray-400 hover:text-gray-200 text-lg transition-colors p-1">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="border-t border-brandBorder my-1"></div>
+      <div class="flex flex-col gap-3">
+        <div class="flex flex-col gap-0.5">
+          <span class="text-[10px] uppercase font-bold text-gray-500">Section</span>
+          <span id="modal-section-name" class="text-sm font-medium text-gray-200">Section Name</span>
+        </div>
+        <div class="flex flex-col gap-0.5">
+          <span class="text-[10px] uppercase font-bold text-gray-500">Faculty / Instructor</span>
+          <span id="modal-faculty-name" class="text-sm font-medium text-gray-200">Faculty Name</span>
+        </div>
+        <div class="flex flex-col gap-0.5">
+          <span class="text-[10px] uppercase font-bold text-gray-500">Schedule Slots</span>
+          <div id="modal-schedule-slots" class="flex flex-col gap-1 text-sm text-gray-300 mt-1">
+            <!-- Slots list -->
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end mt-2">
+        <button id="modal-btn-ok" class="px-5 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors">
+          Dismiss
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-brandBorder py-6 px-6 text-center text-xs text-gray-500 mt-auto">
+    &copy; 2026 Antigravity Routine Optimizer. Built with Python FastAPI, Tailwind CSS, & Vanilla JS.
+  </footer>
+
+  <!-- Custom JS Application logic -->
+  <script src="app.js"></script>
+</body>
+</html>
