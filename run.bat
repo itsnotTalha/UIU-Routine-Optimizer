@@ -3,7 +3,7 @@ setlocal
 
 :: Move to the directory where this script is located
 cd /d "%~dp0"
-set "PYTHONPATH=%~dp0lib;%PYTHONPATH%"
+
 
 set "VENV_DIR=%~dp0venv"
 set "ACTIVATE_SCRIPT=%VENV_DIR%\Scripts\activate.bat"
@@ -30,13 +30,13 @@ call "%ACTIVATE_SCRIPT%"
 
 :: 3. Install all the dependencies
 echo Installing dependencies...
-:: Using a safer approach for pip upgrades on Windows to avoid the mid-install crash
 pip install --upgrade pip --disable-pip-version-check
 pip install -r requirements.txt
 
 :: 4. Run the application
 echo Starting Routine Schedule Optimizer Server on http://127.0.0.1:8000 ...
-uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+:: Changed from 'uvicorn' to 'python -m uvicorn' so Python looks inside your .\lib folder
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 
 :: Keeps the window open if an error causes the app to crash later
 pause
