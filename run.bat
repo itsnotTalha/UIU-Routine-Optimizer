@@ -30,11 +30,14 @@ call "%ACTIVATE_SCRIPT%"
 
 :: 3. Install all the dependencies
 echo Installing dependencies...
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+:: Using a safer approach for pip upgrades on Windows to avoid the mid-install crash
+pip install --upgrade pip --disable-pip-version-check
+pip install -r requirements.txt
 
 :: 4. Run the application
 echo Starting Routine Schedule Optimizer Server on http://127.0.0.1:8000 ...
-python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 
+:: Keeps the window open if an error causes the app to crash later
+pause
 endlocal
