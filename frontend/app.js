@@ -14,6 +14,7 @@ const courseListContainer = document.getElementById('course-list-container');
 const btnAddCourse = document.getElementById('btn-add-course');
 const btnOptimize = document.getElementById('btn-optimize');
 const btnDemo = document.getElementById('btn-demo');
+const btnDownloadSchedule = document.getElementById('btn-download-schedule');
 const emptyState = document.getElementById('empty-state');
 const errorState = document.getElementById('error-state');
 const errorMessage = document.getElementById('error-message');
@@ -30,7 +31,133 @@ const modalBtnOk = document.getElementById('modal-btn-ok');
 const modalCourseName = document.getElementById('modal-course-name');
 const modalSectionName = document.getElementById('modal-section-name');
 const modalFacultyName = document.getElementById('modal-faculty-name');
+const modalRoomName = document.getElementById('modal-room-name');
 const modalScheduleSlots = document.getElementById('modal-schedule-slots');
+
+function updateDownloadButtonState() {
+  if (!btnDownloadSchedule) return;
+  btnDownloadSchedule.disabled = optimizedSchedules.length === 0;
+}
+
+async function downloadCalendarGrid() {
+  if (!btnDownloadSchedule || !optimizedSchedules.length) return;
+
+  const exportTarget = document.getElementById('calendar-export-target');
+  if (!exportTarget || typeof html2canvas !== 'function') {
+    showError('Download is unavailable right now. Please refresh and try again.');
+    return;
+  }
+
+  if (document.fonts && document.fonts.ready) {
+    await document.fonts.ready;
+  }
+
+  const originalLabel = btnDownloadSchedule.innerHTML;
+  btnDownloadSchedule.disabled = true;
+  btnDownloadSchedule.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Exporting...';
+
+  try {
+    const canvas = await html2canvas(exportTarget, {
+      backgroundColor: '#080B11',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      scrollX: 0,
+      scrollY: -window.scrollY,
+      windowWidth: exportTarget.scrollWidth,
+      windowHeight: exportTarget.scrollHeight,
+      onclone: (clonedDocument) => {
+        const clonedTarget = clonedDocument.getElementById('calendar-export-target');
+        if (!clonedTarget) return;
+
+        clonedTarget.style.width = `${exportTarget.scrollWidth}px`;
+        clonedTarget.style.maxWidth = 'none';
+        clonedTarget.style.overflow = 'visible';
+        clonedTarget.style.webkitFontSmoothing = 'antialiased';
+        clonedTarget.style.textRendering = 'geometricPrecision';
+
+        clonedDocument.querySelectorAll('.calendar-header-row').forEach((node) => {
+          node.style.fontSize = '0.95rem';
+          node.style.padding = '16px 0';
+        });
+
+        clonedDocument.querySelectorAll('.day-row-label').forEach((node) => {
+          node.style.fontSize = '0.92rem';
+          node.style.minHeight = '110px';
+        });
+
+        clonedDocument.querySelectorAll('.day-row-timeline').forEach((node) => {
+          node.style.height = '110px';
+        });
+
+        clonedDocument.querySelectorAll('.calendar-time-ticks span, .class-block-horizontal').forEach((node) => {
+          node.style.transform = 'none';
+          node.style.webkitFontSmoothing = 'antialiased';
+          node.style.textRendering = 'geometricPrecision';
+        });
+
+        clonedDocument.querySelectorAll('.calendar-time-ticks span').forEach((node) => {
+          node.style.fontSize = '0.92rem';
+          node.style.fontWeight = '600';
+        });
+
+        clonedDocument.querySelectorAll('.class-block-horizontal').forEach((node) => {
+          node.style.overflow = 'visible';
+          node.style.overflowY = 'visible';
+          node.style.overflowX = 'visible';
+          node.style.fontSize = '10px';
+          node.style.lineHeight = '1.4';
+          node.style.alignItems = 'flex-start';
+          node.style.justifyContent = 'flex-start';
+          node.style.padding = '8px 10px';
+          node.style.minHeight = '72px';
+          node.style.height = 'auto';
+          node.style.boxSizing = 'border-box';
+          node.style.borderRadius = '10px';
+        });
+
+        clonedDocument.querySelectorAll('.class-block-horizontal > div').forEach((node) => {
+          node.style.lineHeight = '1.4';
+          node.style.whiteSpace = 'normal';
+          node.style.overflow = 'visible';
+        });
+
+        clonedDocument.querySelectorAll('.glass, .calendar-container').forEach((node) => {
+          node.style.backdropFilter = 'none';
+          node.style.webkitBackdropFilter = 'none';
+        });
+      },
+    });
+
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob((result) => {
+        if (result) {
+          resolve(result);
+        } else {
+          reject(new Error('Failed to create the PNG file.'));
+        }
+      }, 'image/png');
+    });
+
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const optionNumber = selectedScheduleIndex + 1;
+    const timestamp = new Date().toISOString().slice(0, 10);
+
+    link.href = downloadUrl;
+    link.download = `uiu-weekly-schedule-option-${optionNumber}-${timestamp}.png`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+  } catch (err) {
+    errorMessage.textContent = err.message || 'Failed to download the weekly calendar grid.';
+    errorState.classList.remove('hidden');
+  } finally {
+    btnDownloadSchedule.innerHTML = originalLabel;
+    updateDownloadButtonState();
+  }
+}
 
 // Initialize Hour lines and labels
 function initCalendarHours() {
@@ -232,6 +359,7 @@ function renderCalendarSchedule(schedule) {
       block.innerHTML = `
         <div class="font-bold truncate text-[11px] leading-tight">${courseName}</div>
         <div class="text-[9px] opacity-90 truncate font-mono-custom mt-0.5">Sec ${section.name} | ${section.faculty}</div>
+        ${section.room ? `<div class="text-[8px] opacity-80 truncate mt-0.5"><i class="fa-solid fa-location-dot"></i> ${section.room}</div>` : ''}
         <div class="text-[8px] opacity-80 mt-0.5"><i class="fa-regular fa-clock"></i> ${slot.start_time}-${slot.end_time}</div>
       `;
 
@@ -253,6 +381,9 @@ function showDetailsModal(courseName, section) {
   modalCourseName.textContent = courseName;
   modalSectionName.textContent = `Section ${section.name}`;
   modalFacultyName.textContent = section.faculty || 'Not Assigned';
+  if (modalRoomName) {
+    modalRoomName.textContent = section.room || 'Not Assigned';
+  }
   
   modalScheduleSlots.innerHTML = '';
   section.slots.forEach(slot => {
@@ -296,6 +427,7 @@ function showError(msg) {
   errorState.classList.remove('hidden');
   resultsView.classList.add('hidden');
   emptyState.classList.add('hidden');
+  updateDownloadButtonState();
 }
 
 // Optimize Button Actions
@@ -363,6 +495,7 @@ async function optimizeRoutine() {
     
     renderOptionSelectors();
     renderCalendarSchedule(optimizedSchedules[0]);
+    updateDownloadButtonState();
 
   } catch (err) {
     showError(err.message);
@@ -376,6 +509,7 @@ async function optimizeRoutine() {
 btnAddCourse.addEventListener('click', () => addCourseCard());
 btnOptimize.addEventListener('click', optimizeRoutine);
 btnDemo.addEventListener('click', loadDemoData);
+btnDownloadSchedule.addEventListener('click', downloadCalendarGrid);
 
 // Modal Event Listeners
 modalClose.addEventListener('click', hideDetailsModal);
@@ -388,6 +522,7 @@ detailsModal.addEventListener('click', (e) => {
 
 // Initialize layout hours and load saved courses from server
 initCalendarHours();
+updateDownloadButtonState();
 
 async function loadSavedCourses() {
   try {

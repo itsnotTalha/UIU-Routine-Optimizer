@@ -76,15 +76,19 @@ def parse_section_text(raw_text: str) -> List[Dict[str, Any]]:
                 current_section = {
                     "name": line,
                     "faculty": "",
+                    "room": None,
                     "slots": []
                 }
                 sections.append(current_section)
             elif not current_section["faculty"]:
                 # Faculty name is set to this line
                 current_section["faculty"] = line
+            elif current_section["room"] is None:
+                # Optional room / location metadata line
+                current_section["room"] = line
             else:
                 # This would mean we have a section and faculty name, but we got a third non-slot line.
-                raise ValueError(f"Unexpected line '{line}'. Expected a day-time slot (e.g. 'Monday 10:00-11:30').")
+                raise ValueError(f"Unexpected line '{line}'. Expected a day-time slot (e.g. 'Monday 10:00-11:30') or optional room information.")
 
     # Post-validation: ensure every parsed section has slots
     for sec in sections:

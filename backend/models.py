@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 
 class Slot(BaseModel):
     day: str
@@ -11,6 +11,7 @@ class Slot(BaseModel):
 class Section(BaseModel):
     name: str
     faculty: str
+    room: Optional[str] = None
     slots: List[Slot]
 
 class CourseInput(BaseModel):

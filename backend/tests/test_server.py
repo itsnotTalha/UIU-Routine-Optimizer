@@ -15,7 +15,7 @@ def test_api_optimize_valid():
         "courses": [
             {
                 "course_name": "CSE101",
-                "raw_text": "A\nTeacher A\nMonday 10:00-11:30"
+                "raw_text": "A\nTeacher A\nRoom 203\nMonday 10:00-11:30"
             }
         ]
     }
@@ -25,6 +25,7 @@ def test_api_optimize_valid():
     assert len(data["schedules"]) == 1
     assert data["schedules"][0][0]["course_name"] == "CSE101"
     assert data["schedules"][0][0]["section"]["name"] == "A"
+    assert data["schedules"][0][0]["section"]["room"] == "Room 203"
 
 def test_api_optimize_invalid_format():
     payload = {

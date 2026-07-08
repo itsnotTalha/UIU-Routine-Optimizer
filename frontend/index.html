@@ -8,6 +8,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- DOM capture helper for schedule downloads -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <!-- Custom Stylesheet -->
   <link rel="stylesheet" href="styles.css">
   <script>
@@ -87,6 +89,7 @@
         <pre class="text-[10px] font-mono-custom text-indigo-200/80 bg-black/40 p-3 rounded-lg border border-brandBorder leading-relaxed overflow-x-auto">
 [Section Name]
 [Faculty Name]
+      [Optional Room / Location]
 [Day] [Start Time]-[End Time]
 [Day] [Start Time]-[End Time]
 
@@ -144,19 +147,22 @@ Wednesday 12:31-13:50</pre>
         <!-- Schedule Calendar Card -->
         <div class="glass rounded-2xl p-6 flex flex-col gap-4 overflow-hidden">
           
-          <div class="flex justify-between items-center">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <h4 class="font-semibold text-sm flex items-center gap-2">
               <i class="fa-solid fa-calendar-week text-indigo-400"></i> Weekly Calendar Grid
             </h4>
-            <div class="flex items-center gap-4 text-xs text-gray-400">
+            <div class="flex flex-wrap items-center gap-3 text-xs text-gray-400">
               <div class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-indigo-500"></span> Classes</div>
               <div class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded bg-black/40 border border-brandBorder"></span> Gaps</div>
+              <button id="btn-download-schedule" disabled class="px-3 py-2 rounded-lg border border-indigo-500/30 bg-indigo-600/10 text-indigo-200 font-semibold hover:bg-indigo-600/20 hover:border-indigo-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2">
+                <i class="fa-solid fa-download"></i> Download PNG
+              </button>
             </div>
           </div>
 
           <!-- Calendar Wrapper -->
           <div class="overflow-x-auto w-full border border-brandBorder rounded-xl bg-black/25">
-            <div class="min-w-[850px] p-4">
+            <div id="calendar-export-target" class="min-w-[850px] p-4">
               
               <!-- Calendar Header (Times) -->
               <div class="calendar-header-row">
@@ -230,6 +236,10 @@ Wednesday 12:31-13:50</pre>
           <span class="text-[10px] uppercase font-bold text-gray-500">Faculty / Instructor</span>
           <span id="modal-faculty-name" class="text-sm font-medium text-gray-200">Faculty Name</span>
         </div>
+          <div class="flex flex-col gap-0.5">
+            <span class="text-[10px] uppercase font-bold text-gray-500">Room / Location</span>
+            <span id="modal-room-name" class="text-sm font-medium text-gray-200">Not Assigned</span>
+          </div>
         <div class="flex flex-col gap-0.5">
           <span class="text-[10px] uppercase font-bold text-gray-500">Schedule Slots</span>
           <div id="modal-schedule-slots" class="flex flex-col gap-1 text-sm text-gray-300 mt-1">
