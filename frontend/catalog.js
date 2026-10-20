@@ -161,17 +161,184 @@ function showCatalog() {
   updateStepper(2);
 }
 
+// Advanced Course Search, Acronym Engine & Synonym Dictionary
+const COURSE_SYNONYMS = {
+  'ai': ['artificial intelligence'],
+  'ml': ['machine learning'],
+  'dl': ['deep learning'],
+  'ds': ['data structure', 'data science'],
+  'dsa': ['data structure and algorithms', 'data structure'],
+  'algo': ['algorithm', 'algorithms', 'data structure and algorithms'],
+  'spl': ['structured programming language'],
+  'oop': ['object oriented programming'],
+  'oops': ['object oriented programming'],
+  'aoop': ['advanced object oriented programming'],
+  'dld': ['digital logic design'],
+  'db': ['database', 'database management'],
+  'dbms': ['database management systems', 'database'],
+  'os': ['operating systems', 'operating system'],
+  'se': ['software engineering'],
+  'cn': ['computer networks', 'data communication', 'networking'],
+  'net': ['computer networks', 'networking', 'data communication'],
+  'network': ['computer networks', 'networking', 'data communication'],
+  'networking': ['computer networks', 'networking', 'data communication'],
+  'toc': ['theory of computation'],
+  'cd': ['compiler design', 'compiler'],
+  'compiler': ['compiler design'],
+  'cg': ['computer graphics'],
+  'graphics': ['computer graphics'],
+  'ca': ['computer architecture'],
+  'sad': ['system analysis and design'],
+  'hci': ['human computer interaction'],
+  'nlp': ['natural language processing'],
+  'cv': ['computer vision'],
+  'dm': ['discrete mathematics'],
+  'discrete': ['discrete mathematics'],
+  'math': ['discrete mathematics', 'linear algebra', 'calculus', 'coordinate geometry', 'mathematics'],
+  'linear': ['linear algebra'],
+  'algebra': ['linear algebra'],
+  'calc': ['calculus', 'differential and integral calculus'],
+  'calculus': ['calculus', 'differential and integral calculus'],
+  'stat': ['statistics', 'probability and statistics'],
+  'stats': ['statistics', 'probability and statistics'],
+  'statistics': ['probability and statistics', 'statistics'],
+  'prob': ['probability and statistics'],
+  'probability': ['probability and statistics'],
+  'phy': ['physics'],
+  'physics': ['physics'],
+  'chem': ['chemistry'],
+  'chemistry': ['chemistry'],
+  'bio': ['biology', 'biology for engineers'],
+  'biology': ['biology for engineers', 'biology'],
+  'eng': ['english', 'basic functional english'],
+  'english': ['english', 'basic functional english'],
+  'bangla': ['history of the emergence of bangladesh'],
+  'bangladesh': ['history of the emergence of bangladesh'],
+  'heb': ['history of the emergence of bangladesh'],
+  'history': ['history of the emergence of bangladesh'],
+  'acc': ['accounting', 'financial and managerial accounting'],
+  'accounting': ['financial and managerial accounting', 'accounting'],
+  'fma': ['financial and managerial accounting'],
+  'econ': ['economics', 'engineering economics'],
+  'economics': ['engineering economics', 'economics'],
+  'soc': ['sociology'],
+  'sociology': ['sociology'],
+  'ethics': ['professional ethics', 'cyber ethics'],
+  'micro': ['microprocessors', 'microcontrollers', 'microprocessor and microcontroller'],
+  'mp': ['microprocessors', 'microprocessor and microcontroller'],
+  'circuit': ['electrical circuits', 'electronic devices and circuits'],
+  'circuits': ['electrical circuits', 'electronic devices and circuits'],
+  'edc': ['electronic devices and circuits'],
+  'logic': ['digital logic design'],
+  'lab': ['laboratory']
+};
+
+const STOP_WORDS = new Set(['and', 'of', 'for', 'the', 'in', 'to', 'with', 'a', 'an']);
+
+function getCourseAcronyms(title) {
+  const clean = title.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+  const words = clean.split(/\s+/).filter(Boolean);
+  const sigWords = words.filter(w => !STOP_WORDS.has(w));
+  
+  const fullAcronym = words.map(w => w[0]).join('');
+  const sigAcronym = sigWords.map(w => w[0]).join('');
+  const results = new Set([fullAcronym, sigAcronym]);
+  
+  // Non-laboratory variation (e.g. "Structured Programming Language Laboratory" -> "spl")
+  const nonLab = sigWords.filter(w => w !== 'laboratory' && w !== 'lab');
+  if (nonLab.length > 1) {
+    results.add(nonLab.map(w => w[0]).join(''));
+  }
+  
+  return [...results].filter(a => a && a.length >= 2);
+}
+
+function scoreCourse(course, query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return 1;
+
+  const qCompact = q.replace(/[\s\-_]/g, '');
+  const code = course.code.toLowerCase();
+  const codeCompact = code.replace(/[\s\-_]/g, '');
+  const title = course.title.toLowerCase();
+  const program = (course.program || '').toLowerCase();
+  const acronyms = getCourseAcronyms(course.title);
+
+  // 1. Exact code match (e.g. "CSE 1111", "cse1111", "1111")
+  if (code === q || codeCompact === qCompact) return 100;
+  if (code.startsWith(q) || codeCompact.startsWith(qCompact)) return 85;
+
+  // 2. Exact acronym match (e.g. "ai" matches "Artificial Intelligence")
+  if (acronyms.includes(q)) return 95;
+
+  // 3. Synonym / Keyword match (e.g. "ai", "dsa", "spl", "oop", "algo", "dbms")
+  const syns = COURSE_SYNONYMS[q] || [];
+  for (const syn of syns) {
+    if (title.includes(syn)) return 90;
+  }
+
+  // 4. Exact title phrase
+  if (title === q) return 92;
+  if (title.startsWith(q)) return 80;
+
+  // 5. Title word match
+  const titleWords = title.split(/\s+/);
+  if (titleWords.some(w => w === q)) return 78;
+  if (titleWords.some(w => w.startsWith(q))) return 68;
+
+  // 6. Multi-token match: all words in query must match
+  const tokens = q.split(/\s+/).filter(Boolean);
+  if (tokens.length > 1) {
+    let allMatched = true;
+    let tokenScore = 50;
+    for (const t of tokens) {
+      const tCompact = t.replace(/[\s\-_]/g, '');
+      const tSyns = COURSE_SYNONYMS[t] || [];
+      const match = 
+        code.includes(t) ||
+        codeCompact.includes(tCompact) ||
+        title.includes(t) ||
+        program.includes(t) ||
+        acronyms.includes(t) ||
+        tSyns.some(s => title.includes(s));
+      
+      if (!match) {
+        allMatched = false;
+        break;
+      }
+      tokenScore += 8;
+    }
+    if (allMatched) return tokenScore;
+  }
+
+  // 7. Substring match for longer queries (3+ chars)
+  if (q.length >= 3) {
+    if (title.includes(q)) return 50;
+    if (code.includes(q)) return 45;
+  }
+
+  return 0;
+}
+
 function renderCatalogList() {
   const list = document.getElementById('catalog-list');
   list.replaceChildren();
   const query = searchInput.value.trim().toLowerCase();
   
-  let matches = catalog.courses;
+  let candidates = catalog.courses;
   if (activeProgramFilter) {
-    matches = matches.filter(c => c.program === activeProgramFilter);
+    candidates = candidates.filter(c => c.program === activeProgramFilter);
   }
+
+  let matches = [];
   if (query) {
-    matches = matches.filter(c => `${c.code} ${c.title} ${c.program}`.toLowerCase().includes(query));
+    matches = candidates
+      .map(course => ({ course, score: scoreCourse(course, query) }))
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.course);
+  } else {
+    matches = candidates;
   }
 
   document.getElementById('catalog-count').textContent = `${matches.length} courses shown · ${selectedCourses.size} selected`;
@@ -182,6 +349,9 @@ function renderCatalogList() {
 
   for (const course of matches) {
     const isSelected = selectedCourses.has(course.id);
+    const acronyms = getCourseAcronyms(course.title);
+    const matchedAcronym = query && (acronyms.includes(query) || (COURSE_SYNONYMS[query] && COURSE_SYNONYMS[query].some(s => course.title.toLowerCase().includes(s))));
+
     const card = document.createElement('div');
     card.className = `catalog-course-item flex items-center justify-between gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
       isSelected ? 'selected' : ''
@@ -190,7 +360,7 @@ function renderCatalogList() {
     card.innerHTML = `
       <div class="flex items-center gap-3 min-w-0">
         <div class="h-6 w-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
-          isSelected ? 'bg-orange-600 text-white shadow-sm' : 'border border-[var(--border-color)] bg-[var(--pill-bg)] text-transparent'
+          isSelected ? 'bg-indigo-600 text-white shadow-sm' : 'border border-[var(--border-color)] bg-[var(--pill-bg)] text-transparent'
         }">
           <i class="fa-solid fa-check text-xs"></i>
         </div>
@@ -198,6 +368,7 @@ function renderCatalogList() {
           <div class="flex items-center gap-2 flex-wrap">
             <span class="font-bold text-fluid-xs font-mono-custom text-[var(--text-primary)] tracking-tight">${escapeHtml(course.code)}</span>
             <span class="text-fluid-2xs px-2 py-0.5 rounded font-bold bg-[var(--pill-bg)] text-[var(--text-secondary)] border border-brandBorder">${escapeHtml(course.program)}</span>
+            ${matchedAcronym ? `<span class="text-fluid-2xs px-1.5 py-0.2 rounded font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 flex items-center gap-1"><i class="fa-solid fa-wand-magic-sparkles text-[9px]"></i> ${escapeHtml(query.toUpperCase())}</span>` : ''}
           </div>
           <p class="text-fluid-xs text-[var(--text-secondary)] font-medium truncate mt-0.5" title="${escapeHtml(course.title)}">${escapeHtml(course.title)}</p>
         </div>
@@ -225,7 +396,7 @@ function renderCatalogList() {
   if (!matches.length) {
     const emptyDiv = document.createElement('div');
     emptyDiv.className = 'p-6 text-center text-fluid-xs text-[var(--text-muted)] flex flex-col items-center gap-2 font-medium';
-    emptyDiv.innerHTML = '<i class="fa-solid fa-magnifying-glass text-neutral-500 text-xl"></i> No courses match your search or filter.';
+    emptyDiv.innerHTML = '<i class="fa-solid fa-magnifying-glass text-slate-500 text-xl"></i> No courses match your search or filter.';
     list.appendChild(emptyDiv);
   }
 }

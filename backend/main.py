@@ -160,10 +160,20 @@ def delete_course(course_id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete course: {str(e)}")
 
-# Mount the static files for the frontend application
-frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
-if os.path.exists(frontend_dir):
-    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
-else:
-    # If frontend doesn't exist yet, we still allow starting backend for tests
-    pass
+# Mount static files (checks public/ first, then frontend/ for local and serverless environments)
+def _find_frontend_dir() -> Path | None:
+    for candidate in [
+        Path(__file__).resolve().parent.parent / "public",
+        Path(__file__).resolve().parent.parent / "frontend",
+        Path("/var/task/public"),
+        Path("/var/task/frontend"),
+        Path(os.getcwd()) / "public",
+        Path(os.getcwd()) / "frontend",
+    ]:
+        if candidate.exists() and (candidate / "index.html").exists():
+            return candidate
+    return None
+
+frontend_path = _find_frontend_dir()
+if frontend_path:
+    app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="frontend")
