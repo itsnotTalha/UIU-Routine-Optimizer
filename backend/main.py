@@ -5,13 +5,16 @@ from typing import List
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 from backend.models import OptimizeRequest, OptimizeResponse, SavedCourse
 from backend.parser import parse_section_text
 from backend.optimizer import solve_schedules
+from backend.preferences import filter_strict, preference_score, preference_report
 from backend.catalog import router as catalog_router
 
 app = FastAPI(title="Routine Schedule Optimizer")
+app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=4)
 app.include_router(catalog_router, prefix="/api")
 app.include_router(catalog_router, prefix="")
 
@@ -48,8 +51,13 @@ def optimize_schedules(request: OptimizeRequest):
     ]
             
     try:
-        schedules = solve_schedules(parsed_courses, campus_days=request.campus_days)
-        return OptimizeResponse(schedules=schedules)
+        preferences = dict(earliest_start=request.earliest_start, latest_end=request.latest_end, priority=request.priority)
+        candidates = filter_strict(parsed_courses, preferences) if request.priority == 'strict' else parsed_courses
+        schedules = solve_schedules(candidates, campus_days=request.campus_days, max_results=100_000, max_nodes=2_000_000)
+        schedules.sort(key=lambda s: preference_score(s, preferences))
+        return OptimizeResponse(schedules=schedules, preference_reports=[preference_report(s, preferences) for s in schedules])
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate schedules: {str(e)}")
 

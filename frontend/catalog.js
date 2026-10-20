@@ -201,6 +201,12 @@ function showCatalog() {
   if (statCoursesCount) statCoursesCount.textContent = catalog.courses.length;
   if (statSectionsCount) statSectionsCount.textContent = count;
 
+  const drawerCourses = document.getElementById('drawer-courses-count');
+  const drawerSections = document.getElementById('drawer-sections-count');
+  const drawerTitle = document.getElementById('drawer-routine-title');
+  if (drawerCourses) drawerCourses.textContent = catalog.courses.length;
+  if (drawerSections) drawerSections.textContent = count;
+
   const isDefaultRoutine = Boolean(catalog.is_default || catalog.id === 'default');
   if (toolbarRoutineLabel) {
     toolbarRoutineLabel.textContent = isDefaultRoutine ? 'Fall 2026' : (catalog.filename ? catalog.filename.slice(0, 16) + '…' : 'Custom');
@@ -237,10 +243,107 @@ function showCatalog() {
   document.getElementById('import-warnings').hidden = !catalog.warnings?.length;
   
   renderProgramFilters();
+  populateRoutineTimeDropdowns();
   renderCatalogList();
   renderSelectedCourses();
   updateStepper(2);
 }
+
+function formatTimeOption(t) {
+  const [hStr, mStr] = t.split(':');
+  const h = parseInt(hStr, 10);
+  const m = mStr || '00';
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  const h12Str = String(h12).padStart(2, '0');
+  return `${h12Str}:${m} ${ampm} (${t})`;
+}
+
+function updateTimeFilterPill() {
+  const pillLabel = document.getElementById('time-filter-pill-label');
+  const start = document.getElementById('earliest-start')?.value;
+  const end = document.getElementById('latest-end')?.value;
+  if (!pillLabel) return;
+  if (start && end) {
+    pillLabel.textContent = `Time: ${start}–${end}`;
+  } else if (start) {
+    pillLabel.textContent = `Start: ≥${start}`;
+  } else if (end) {
+    pillLabel.textContent = `End: ≤${end}`;
+  } else {
+    pillLabel.textContent = 'Time: Any';
+  }
+}
+window.updateTimeFilterPill = updateTimeFilterPill;
+
+function populateRoutineTimeDropdowns() {
+  const startSelect = document.getElementById('earliest-start-select');
+  const endSelect = document.getElementById('latest-end-select');
+  if (!startSelect || !endSelect || !catalog) return;
+
+  const rawStarts = new Set();
+  const rawEnds = new Set();
+  for (const course of catalog.courses) {
+    for (const section of course.sections) {
+      for (const slot of section.slots) {
+        if (slot.start_time) rawStarts.add(slot.start_time);
+        if (slot.end_time) rawEnds.add(slot.end_time);
+      }
+    }
+  }
+
+  const currentStart = document.getElementById('earliest-start')?.value || '';
+  const currentEnd = document.getElementById('latest-end')?.value || '';
+
+  startSelect.innerHTML = '<option value="">Any start time</option>';
+  for (const t of [...rawStarts].sort()) {
+    const opt = document.createElement('option');
+    opt.value = t;
+    opt.textContent = formatTimeOption(t);
+    startSelect.appendChild(opt);
+  }
+  const customStartOpt = document.createElement('option');
+  customStartOpt.value = 'custom';
+  customStartOpt.textContent = 'Custom time...';
+  startSelect.appendChild(customStartOpt);
+
+  endSelect.innerHTML = '<option value="">Any finish time</option>';
+  for (const t of [...rawEnds].sort()) {
+    const opt = document.createElement('option');
+    opt.value = t;
+    opt.textContent = formatTimeOption(t);
+    endSelect.appendChild(opt);
+  }
+  const customEndOpt = document.createElement('option');
+  customEndOpt.value = 'custom';
+  customEndOpt.textContent = 'Custom time...';
+  endSelect.appendChild(customEndOpt);
+
+  if (currentStart) {
+    if ([...startSelect.options].some(o => o.value === currentStart)) {
+      startSelect.value = currentStart;
+    } else {
+      startSelect.value = 'custom';
+      document.getElementById('earliest-start')?.classList.remove('hidden');
+    }
+  } else {
+    startSelect.value = '';
+  }
+
+  if (currentEnd) {
+    if ([...endSelect.options].some(o => o.value === currentEnd)) {
+      endSelect.value = currentEnd;
+    } else {
+      endSelect.value = 'custom';
+      document.getElementById('latest-end')?.classList.remove('hidden');
+    }
+  } else {
+    endSelect.value = '';
+  }
+
+  updateTimeFilterPill();
+}
+window.populateRoutineTimeDropdowns = populateRoutineTimeDropdowns;
 
 // Advanced Course Search, Acronym Engine & Synonym Dictionary
 const COURSE_SYNONYMS = {
@@ -515,10 +618,13 @@ function renderCatalogList() {
       facultyWrapper.className = 'mobile-faculty-wrapper w-full mt-1 pt-2 border-t border-brandBorder flex flex-col gap-1.5';
 
       const facultyHeader = document.createElement('div');
+      const priorityLabel = preferences.length > 1 
+        ? `${preferences.length} selected (Priority: #${preferences.map((_, i) => i + 1).join(' > #')})` 
+        : (preferences.length === 1 ? '1 selected (Priority #1)' : 'All allowed');
       facultyHeader.className = 'flex items-center justify-between text-[11px]';
       facultyHeader.innerHTML = `
         <span class="font-bold uppercase tracking-wider text-[var(--text-muted)]">Preferred Faculty:</span>
-        <span class="text-orange-500 font-semibold">${preferences.length ? `${preferences.length} selected` : 'All allowed'}</span>
+        <span class="text-orange-500 font-semibold">${priorityLabel}</span>
       `;
       facultyWrapper.appendChild(facultyHeader);
 
@@ -545,17 +651,21 @@ function renderCatalogList() {
       };
       pillsRow.appendChild(allPill);
 
-      // Specific Faculty Pills
+      // Specific Faculty Pills with Priority Badging
       for (const faculty of availableFaculties) {
         const isChecked = preferences.includes(faculty);
+        const priorityIndex = isChecked ? preferences.indexOf(faculty) + 1 : 0;
         const facPill = document.createElement('button');
         facPill.type = 'button';
-      facPill.setAttribute('aria-pressed', String(isChecked));
+        facPill.setAttribute('aria-pressed', String(isChecked));
         const secCount = course.sections.filter(s => s.faculty === faculty).length;
         facPill.className = `faculty-pill px-2.5 py-1 rounded-lg text-fluid-2xs font-bold border transition-all flex items-center gap-1.5 ${
           isChecked ? 'active' : ''
         }`;
-        facPill.innerHTML = `<span>${escapeHtml(faculty)}</span> <span class="text-fluid-2xs opacity-75 font-normal">(${secCount})</span>`;
+        const badgeHtml = isChecked 
+          ? `<span class="priority-badge">#${priorityIndex}</span>` 
+          : '';
+        facPill.innerHTML = `${badgeHtml}<span>${escapeHtml(faculty)}</span> <span class="text-fluid-2xs opacity-75 font-normal">(${secCount})</span>`;
         facPill.onclick = (e) => {
           e.stopPropagation();
           let updated;
@@ -574,6 +684,48 @@ function renderCatalogList() {
       }
 
       facultyWrapper.appendChild(pillsRow);
+
+      // Per-Course Faculty Priority Option (when 2+ faculty selected)
+      if (preferences.length >= 2) {
+        const priorityControl = document.createElement('div');
+        priorityControl.className = 'faculty-priority-box mt-2 p-2 rounded-xl bg-orange-500/10 border border-orange-500/25 flex items-center justify-between gap-2';
+        priorityControl.innerHTML = `
+          <div class="flex items-center gap-1.5 text-fluid-2xs flex-1 min-w-0">
+            <i class="fa-solid fa-star text-amber-400 flex-shrink-0"></i>
+            <span class="font-bold text-[var(--text-primary)] flex-shrink-0">1st Priority:</span>
+            <select class="faculty-priority-select rounded-lg px-2 py-0.5 text-fluid-2xs font-bold text-orange-400 bg-[var(--bg-secondary)] border border-brandBorder cursor-pointer flex-1 truncate">
+              ${preferences.map((f, i) => `<option value="${escapeHtml(f)}" ${i === 0 ? 'selected' : ''}>${escapeHtml(f)} (#${i + 1}${i === 0 ? ' - 1st Choice' : ''})</option>`).join('')}
+            </select>
+          </div>
+          <button type="button" class="btn-swap-priority text-fluid-2xs font-bold px-2 py-1 rounded-lg bg-[var(--bg-primary)] hover:bg-[var(--bg-card-hover)] border border-brandBorder text-[var(--text-secondary)] hover:text-orange-400 transition-colors flex items-center gap-1 flex-shrink-0" title="Swap priority order">
+            <i class="fa-solid fa-arrow-down-up-across-line text-[10px]"></i> Swap
+          </button>
+        `;
+        const select = priorityControl.querySelector('.faculty-priority-select');
+        select.onclick = (e) => e.stopPropagation();
+        select.onchange = (e) => {
+          e.stopPropagation();
+          const chosen = e.target.value;
+          const reordered = [chosen, ...preferences.filter(f => f !== chosen)];
+          selectedCourses.set(course.id, reordered);
+          invalidateCatalogResults();
+          persistCatalog();
+          renderCatalogList();
+          renderSelectedCourses();
+        };
+        const swapBtn = priorityControl.querySelector('.btn-swap-priority');
+        swapBtn.onclick = (e) => {
+          e.stopPropagation();
+          const reversed = [...preferences].reverse();
+          selectedCourses.set(course.id, reversed);
+          invalidateCatalogResults();
+          persistCatalog();
+          renderCatalogList();
+          renderSelectedCourses();
+        };
+        facultyWrapper.appendChild(priorityControl);
+      }
+
       card.appendChild(facultyWrapper);
     }
 
@@ -599,7 +751,9 @@ function renderCatalogList() {
 
 function renderSelectedCourses() {
   renderConstraintFacultySummary();
+  window.updateGlobalFacultyPriorityDropdown?.();
   window.updateWorkspaceBadges?.();
+  window.syncMobileOptimizeBar?.();
   const container = document.getElementById('selected-courses');
   container.replaceChildren();
   
@@ -659,9 +813,15 @@ function renderSelectedCourses() {
     const facultySection = document.createElement('div');
     facultySection.className = 'flex flex-col gap-1.5';
     
-    const facultyLabel = document.createElement('span');
-    facultyLabel.className = 'text-fluid-2xs font-bold uppercase tracking-wider text-[var(--text-muted)]';
-    facultyLabel.textContent = 'Preferred Faculty:';
+    const priorityLabel = preferences.length > 1 
+      ? `${preferences.length} selected (Priority: ${preferences.map((f, i) => `#${i + 1} ${escapeHtml(f)}`).join(' > ')})` 
+      : (preferences.length === 1 ? '1 selected (Priority #1)' : 'All allowed');
+    const facultyLabel = document.createElement('div');
+    facultyLabel.className = 'flex items-center justify-between text-fluid-2xs';
+    facultyLabel.innerHTML = `
+      <span class="font-bold uppercase tracking-wider text-[var(--text-muted)]">Preferred Faculty:</span>
+      <span class="text-orange-500 font-semibold">${priorityLabel}</span>
+    `;
     facultySection.appendChild(facultyLabel);
 
     const pillsRow = document.createElement('div');
@@ -687,9 +847,10 @@ function renderSelectedCourses() {
     };
     pillsRow.appendChild(allPill);
 
-    // Specific Faculty Pills
+    // Specific Faculty Pills with Priority Badging
     for (const faculty of availableFaculties) {
       const isChecked = preferences.includes(faculty);
+      const priorityIndex = isChecked ? preferences.indexOf(faculty) + 1 : 0;
       const facPill = document.createElement('button');
       facPill.type = 'button';
       facPill.setAttribute('aria-pressed', String(isChecked));
@@ -697,7 +858,10 @@ function renderSelectedCourses() {
       facPill.className = `faculty-pill px-2.5 py-1 rounded-lg text-fluid-2xs font-bold border transition-all flex items-center gap-1.5 ${
         isChecked ? 'active' : ''
       }`;
-      facPill.innerHTML = `<span>${escapeHtml(faculty)}</span> <span class="text-fluid-2xs opacity-75 font-normal">(${secCount})</span>`;
+      const badgeHtml = isChecked 
+        ? `<span class="priority-badge">#${priorityIndex}</span>` 
+        : '';
+      facPill.innerHTML = `${badgeHtml}<span>${escapeHtml(faculty)}</span> <span class="text-fluid-2xs opacity-75 font-normal">(${secCount})</span>`;
       facPill.onclick = () => {
         let updated;
         if (isChecked) {
@@ -714,6 +878,44 @@ function renderSelectedCourses() {
       pillsRow.appendChild(facPill);
     }
     facultySection.appendChild(pillsRow);
+
+    // Per-Course Faculty Priority Option (when 2+ faculty selected)
+    if (preferences.length >= 2) {
+      const priorityControl = document.createElement('div');
+      priorityControl.className = 'faculty-priority-box mt-2 p-2 rounded-xl bg-orange-500/10 border border-orange-500/25 flex items-center justify-between gap-2';
+      priorityControl.innerHTML = `
+        <div class="flex items-center gap-1.5 text-fluid-2xs flex-1 min-w-0">
+          <i class="fa-solid fa-star text-amber-400 flex-shrink-0"></i>
+          <span class="font-bold text-[var(--text-primary)] flex-shrink-0">1st Priority:</span>
+          <select class="faculty-priority-select rounded-lg px-2 py-0.5 text-fluid-2xs font-bold text-orange-400 bg-[var(--bg-secondary)] border border-brandBorder cursor-pointer flex-1 truncate">
+            ${preferences.map((f, i) => `<option value="${escapeHtml(f)}" ${i === 0 ? 'selected' : ''}>${escapeHtml(f)} (#${i + 1}${i === 0 ? ' - 1st Choice' : ''})</option>`).join('')}
+          </select>
+        </div>
+        <button type="button" class="btn-swap-priority text-fluid-2xs font-bold px-2 py-1 rounded-lg bg-[var(--bg-primary)] hover:bg-[var(--bg-card-hover)] border border-brandBorder text-[var(--text-secondary)] hover:text-orange-400 transition-colors flex items-center gap-1 flex-shrink-0" title="Swap priority order">
+          <i class="fa-solid fa-arrow-down-up-across-line text-[10px]"></i> Swap
+        </button>
+      `;
+      const select = priorityControl.querySelector('.faculty-priority-select');
+      select.onchange = (e) => {
+        const chosen = e.target.value;
+        const reordered = [chosen, ...preferences.filter(f => f !== chosen)];
+        selectedCourses.set(id, reordered);
+        invalidateCatalogResults();
+        persistCatalog();
+        renderCatalogList();
+        renderSelectedCourses();
+      };
+      const swapBtn = priorityControl.querySelector('.btn-swap-priority');
+      swapBtn.onclick = () => {
+        const reversed = [...preferences].reverse();
+        selectedCourses.set(id, reversed);
+        invalidateCatalogResults();
+        persistCatalog();
+        renderCatalogList();
+        renderSelectedCourses();
+      };
+      facultySection.appendChild(priorityControl);
+    }
     card.appendChild(facultySection);
 
     // Collapsible Section Details
@@ -903,9 +1105,14 @@ async function fetchCatalogSchedules(offset = 0) {
     
     emptyState.classList.add('hidden');
     resultsView.classList.remove('hidden');
-    combinationsCount.textContent = `Found ${catalogTotal.toLocaleString()} conflict-free combinations · ${data.exact_matches.toLocaleString()} match all preferences`;
+    const totalCount = catalogTotal || 0;
+    const matchCount = data.exact_matches;
+    const matchInfo = (matchCount !== undefined && matchCount !== null) 
+      ? ` · ${matchCount.toLocaleString()} match all preferences` 
+      : '';
+    combinationsCount.textContent = `Found ${totalCount.toLocaleString()} conflict-free combinations${matchInfo}`;
     document.getElementById('schedule-pagination').hidden = false;
-    document.getElementById('page-label').textContent = `${offset + 1}–${offset + optimizedSchedules.length} of ${catalogTotal.toLocaleString()}`;
+    document.getElementById('page-label').textContent = `${offset + 1}–${offset + optimizedSchedules.length} of ${totalCount.toLocaleString()}`;
     
     if (window.renderOptionSelectors) window.renderOptionSelectors();
     else if (typeof renderOptionSelectors === 'function') renderOptionSelectors();
@@ -930,8 +1137,15 @@ async function fetchCatalogSchedules(offset = 0) {
   }
 }
 
-pdfButton.addEventListener('click', () => {
+pdfButton.addEventListener('click', (e) => {
   if (!validateSchedulingPreferences()) return;
+  // Lock scroll position on mobile to prevent jump-to-top when clicking inside <details>
+  if (window.innerWidth < 1024) {
+    const _sy = window.scrollY;
+    const _lock = () => { window.scrollTo({ top: _sy, behavior: 'instant' }); };
+    window.addEventListener('scroll', _lock, { once: true, passive: false });
+    setTimeout(() => window.removeEventListener('scroll', _lock), 400);
+  }
   catalogRequest = {
     catalog_id: catalog.id, campus_days: getCampusDays(), ...getSchedulingPreferences(),
     selections: [...selectedCourses].map(([course_id, faculties]) => ({course_id, faculties: [...faculties]}))
@@ -997,7 +1211,7 @@ async function loadDefaultRoutine() {
         catalog = data;
         if (saved.id === 'default') catalog.is_default = true;
         restoreSchedulingPreferences(saved);
-        document.getElementById('campus-days').value = [3, 4, 5].includes(saved.campus_days) ? String(saved.campus_days) : '';
+        document.getElementById('campus-days').value = [2, 3, 4, 5].includes(saved.campus_days) ? String(saved.campus_days) : '';
         refreshPreferenceSummary();
         selectedCourses = new Map((saved.selections || []).filter(s => catalog.courses.some(c => c.id === s.course_id)).map(s => [s.course_id, s.faculties]));
         showCatalog();
@@ -1010,4 +1224,68 @@ async function loadDefaultRoutine() {
 
   // Pre-load official routine automatically for immediate zero-click readiness!
   await loadDefaultRoutine();
+})();
+
+
+// ── Mobile Fixed Optimize Bar (Option A) ──────────────────────────────────
+(function setupMobileOptimizeBar() {
+  const mobileBar = document.getElementById('mobile-optimize-bar');
+  const mobileBtn = document.getElementById('btn-optimize-pdf-mobile');
+  if (!mobileBar || !mobileBtn) return;
+
+  // Sync mobile button state (disabled + label) to match the real pdfButton
+  function syncMobileBtn() {
+    mobileBtn.disabled = pdfButton.disabled;
+    mobileBtn.innerHTML = pdfButton.innerHTML;
+    if (pdfButton.classList.contains('pulse-ready')) {
+      mobileBtn.classList.add('pulse-ready');
+    } else {
+      mobileBtn.classList.remove('pulse-ready');
+    }
+  }
+
+  // Show or hide the mobile bar based on catalog-panel visibility, active workspace, and screen width
+  function updateMobileBarVisibility() {
+    const catalogPanel = document.getElementById('catalog-panel');
+    const isCoursesWorkspace = (document.body.dataset.workspace || 'courses') === 'courses';
+    const isVisible = window.innerWidth < 1024 && catalogPanel && !catalogPanel.hidden && isCoursesWorkspace;
+    mobileBar.classList.toggle('visible', !!isVisible);
+    document.body.classList.toggle('has-mobile-optimize-bar', !!isVisible);
+    if (isVisible) syncMobileBtn();
+  }
+
+  window.syncMobileOptimizeBar = syncMobileBtn;
+  window.updateMobileBarVisibility = updateMobileBarVisibility;
+
+  // Observe catalog-panel hidden attribute changes
+  const catalogPanel = document.getElementById('catalog-panel');
+  if (catalogPanel) {
+    new MutationObserver(updateMobileBarVisibility).observe(catalogPanel, { attributes: true, attributeFilter: ['hidden'] });
+  }
+
+  // Observe workspace switches (Courses & Faculty vs Schedules)
+  new MutationObserver(updateMobileBarVisibility).observe(document.body, {
+    attributes: true,
+    attributeFilter: ['data-workspace']
+  });
+
+  // Also re-check on resize
+  window.addEventListener('resize', updateMobileBarVisibility, { passive: true });
+
+  // Wire mobile button click → same logic as real pdfButton
+  mobileBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    pdfButton.click();
+  });
+
+  // Sync state whenever pdfButton changes (use a MutationObserver)
+  new MutationObserver(syncMobileBtn).observe(pdfButton, {
+    attributes: true,
+    attributeFilter: ['disabled', 'class'],
+    childList: true,
+    subtree: true,
+  });
+
+  // Initial state
+  updateMobileBarVisibility();
 })();

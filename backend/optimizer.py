@@ -60,41 +60,47 @@ def solve_schedules(courses: List[Dict[str, Any]], max_results=None, max_nodes=N
         if not course.get("sections"):
             return []
 
+    # Encode occupied minutes once. Half-open intervals preserve adjacent classes.
+    day_names = {slot['day'] for c in courses for sec in c['sections'] for slot in sec['slots']}
+    day_indices = {day: i for i, day in enumerate(sorted(day_names))}
+    encoded = []
+    for course in courses:
+        options = []
+        for section in course['sections']:
+            occupied = days = 0
+            for slot in section['slots']:
+                day = day_indices[slot['day']]
+                duration = slot['end_mins'] - slot['start_mins']
+                occupied |= ((1 << duration) - 1) << (day * 1440 + slot['start_mins'])
+                days |= 1 << day
+            options.append((section, occupied, days))
+        encoded.append(options)
+
     results = []
     nodes = 0
-    
-    def backtrack(course_idx: int, current_selection: List[Dict[str, Any]]):
+    current_selection = []
+
+    def backtrack(course_idx, occupied, days):
         nonlocal nodes
         nodes += 1
         if max_nodes is not None and nodes > max_nodes:
             raise ValueError("Too many combinations to search. Select fewer courses or narrow faculty preferences.")
-        days = {slot['day'] for item in current_selection for slot in item['section']['slots']}
-        if campus_days is not None and len(days) > campus_days:
+        if campus_days is not None and days.bit_count() > campus_days:
             return
         if course_idx == len(courses):
-            if campus_days is not None and len(days) != campus_days:
+            if campus_days is not None and days.bit_count() != campus_days:
                 return
             if max_results is not None and len(results) >= max_results:
-                raise ValueError("More than 100,000 valid combinations. Narrow faculty preferences or select fewer courses.")
-            # Found a valid combination
+                raise ValueError(f"More than {max_results:,} valid combinations. Narrow faculty preferences or select fewer courses.")
             results.append(list(current_selection))
             return
-        
-        course = courses[course_idx]
-        course_name = course["course_name"]
-        
-        current_section_objs = [item["section"] for item in current_selection]
-        
-        for section in course["sections"]:
-            if not has_conflict(current_section_objs, section):
-                current_selection.append({
-                    "course_name": course_name,
-                    "section": section
-                })
-                backtrack(course_idx + 1, current_selection)
+        for section, section_mask, section_days in encoded[course_idx]:
+            if not occupied & section_mask:
+                current_selection.append({'course_name': courses[course_idx]['course_name'], 'section': section})
+                backtrack(course_idx + 1, occupied | section_mask, days | section_days)
                 current_selection.pop()
 
-    backtrack(0, [])
+    backtrack(0, 0, 0)
     return results
 
 

@@ -223,3 +223,25 @@ Feel free to open an issue or submit a pull request on [GitHub](https://github.c
 <div align="center">
   <sub>Built with ❤️ for UIU students.</sub>
 </div>
+
+
+### Performance and touch interaction
+
+Schedule conflict checks use precomputed minute masks. Ranked searches with at most 20,000 results are cached for two minutes per running worker (up to four searches); larger searches still work within the existing limits but are not cached. Cache keys include section data and campus-day preferences. Warm workers can reuse a search across result pages; cold serverless workers compute it again. API responses over 1 KB use gzip when supported by the client.
+
+The course list reuses unchanged cards, debounces search by 100 ms, and paints off-screen cards on demand. Section details render when expanded. Touch controls have larger hit areas, reduced animation and blur, and preserve normal swipe/pinch gestures. Course cards support Enter/Space, and reduced-motion preferences are respected.
+
+
+### Time windows and preference priorities
+
+Open **Routine constraints** to choose an earliest class start and/or latest class finish. Boundaries are inclusive and apply to every weekly meeting, including labs. Either boundary may be blank; if both are supplied, start must be earlier than finish.
+
+- **Require all preferences** (default): every section must fit the time window and any selected faculty. No fallback sections are included.
+- **Time first, then faculty**: minimize total weekly minutes outside the window, then the number of courses without a preferred faculty.
+- **Faculty first, then time**: minimize the number of courses without a preferred faculty, then total weekly minutes outside the window.
+
+Priority modes include alternatives, ordered by these rules before campus-day and gap ranking. Every routine remains clash-free and respects the chosen exact campus-day count. All chosen courses remain present. Unchecked faculty preferences accept all faculty. Each result reports faculty substitutions and out-of-window meetings; a separate notice identifies a preferred faculty who has no individual section entirely inside the window. Individual availability does not guarantee that all preferred sections can fit together.
+
+The Routine constraints section groups campus days, time boundaries, priority mode, and a live summary of selected faculty names by course. Preferences persist with the catalog selection. Manual entries also support time windows; faculty choices for manual entries come from their pasted sections. The existing search limits still apply when priority modes expand the candidate sections.
+
+Both optimize endpoints accept `earliest_start` and `latest_end` (nullable `HH:MM`, 24-hour), plus `priority` (`strict`, `time_first`, or `faculty_first`). Results include `preference_reports`; the catalog API also returns `exact_matches` and `notices` alongside its paginated schedules. Cache keys include all preference settings.

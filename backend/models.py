@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import List, Optional, Literal
 
 class Slot(BaseModel):
@@ -19,8 +19,19 @@ class CourseInput(BaseModel):
     course_name: str = Field(..., min_length=1)
     raw_text: str = Field(..., min_length=1)
 
-class OptimizeRequest(BaseModel):
-    campus_days: Optional[Literal[3, 4, 5]] = None
+class SchedulePreferences(BaseModel):
+    earliest_start: Optional[str] = Field(default=None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+    latest_end: Optional[str] = Field(default=None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+    priority: Literal['strict', 'time_first', 'faculty_first'] = 'strict'
+
+    @model_validator(mode='after')
+    def valid_window(self):
+        if self.earliest_start and self.latest_end and self.earliest_start >= self.latest_end:
+            raise ValueError('Earliest start must be before latest finish.')
+        return self
+
+class OptimizeRequest(SchedulePreferences):
+    campus_days: Optional[Literal[2, 3, 4, 5]] = None
     courses: List[CourseInput]
 
 class CourseSectionMapping(BaseModel):
@@ -30,6 +41,7 @@ class CourseSectionMapping(BaseModel):
 class OptimizeResponse(BaseModel):
     schedules: List[List[CourseSectionMapping]]
     error: Optional[str] = None
+    preference_reports: List[dict] = Field(default_factory=list)
 
 class SavedCourse(BaseModel):
     id: int
@@ -40,8 +52,8 @@ class CatalogSelection(BaseModel):
     course_id: str
     faculties: List[str] = Field(default_factory=list)
 
-class CatalogOptimizeRequest(BaseModel):
-    campus_days: Optional[Literal[3, 4, 5]] = None
+class CatalogOptimizeRequest(SchedulePreferences):
+    campus_days: Optional[Literal[2, 3, 4, 5]] = None
     catalog_id: str
     selections: List[CatalogSelection] = Field(..., min_length=1, max_length=12)
     offset: int = Field(default=0, ge=0)

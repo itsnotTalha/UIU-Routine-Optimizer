@@ -1,5 +1,9 @@
 """PDF catalogs are stored separately from the legacy manually entered courses."""
 import json
+import hashlib
+import time
+from collections import OrderedDict
+from threading import Lock
 import re
 from pathlib import Path
 from uuid import uuid4
@@ -8,6 +12,7 @@ from fastapi import APIRouter, HTTPException, UploadFile
 from backend.models import CatalogOptimizeRequest
 from backend.optimizer import solve_schedules, schedule_score
 from backend.pdf_import import import_pdf
+from backend.preferences import preference_score, preference_report, filter_strict, availability_notices, penalties
 
 router = APIRouter()
 CATALOG_DIR = Path(__file__).parent / 'catalogs'
@@ -15,6 +20,37 @@ TMP_CATALOG_DIR = Path('/tmp/catalogs')
 ROUTINES_DIR = Path(__file__).parent.parent / 'routines'
 BACKEND_ROUTINES_DIR = Path(__file__).parent / 'routines'
 MAX_UPLOAD = 20 * 1024 * 1024
+
+
+# Small, expiring process-local cache: useful on local servers and warm workers.
+# Keys include section data, so changed PDFs/preferences cannot reuse old results.
+_SCHEDULE_CACHE = OrderedDict()
+_CACHE_LOCK = Lock()
+_CACHE_TTL = 120
+_CACHE_MAX_ENTRIES = 4
+_CACHE_MAX_RESULTS = 20_000
+
+
+def ranked_schedules(courses, campus_days, preferences=None):
+    signature = json.dumps([courses, campus_days, preferences], sort_keys=True, separators=(',', ':'))
+    key = hashlib.sha256(signature.encode()).digest()
+    now = time.monotonic()
+    with _CACHE_LOCK:
+        for expired in [k for k, (deadline, _) in _SCHEDULE_CACHE.items() if deadline <= now]:
+            del _SCHEDULE_CACHE[expired]
+        if key in _SCHEDULE_CACHE:
+            _SCHEDULE_CACHE.move_to_end(key)
+            return _SCHEDULE_CACHE[key][1]
+    candidates = filter_strict(courses, preferences) if preferences and preferences['priority'] == 'strict' else courses
+    schedules = solve_schedules(candidates, max_results=100_000, max_nodes=2_000_000, campus_days=campus_days)
+    schedules.sort(key=(lambda s: preference_score(s, preferences)) if preferences else schedule_score)
+    if len(schedules) <= _CACHE_MAX_RESULTS:
+        with _CACHE_LOCK:
+            _SCHEDULE_CACHE[key] = (time.monotonic() + _CACHE_TTL, schedules)
+            _SCHEDULE_CACHE.move_to_end(key)
+            while len(_SCHEDULE_CACHE) > _CACHE_MAX_ENTRIES:
+                _SCHEDULE_CACHE.popitem(last=False)
+    return schedules
 
 
 def get_default_catalog():
@@ -138,6 +174,7 @@ def optimize_catalog(request: CatalogOptimizeRequest):
     catalog = load_catalog(request.catalog_id)
     available = {c['id']: c for c in catalog['courses']}
     courses, seen = [], set()
+    preferences = dict(earliest_start=request.earliest_start, latest_end=request.latest_end, priority=request.priority, faculties={})
     for selection in request.selections:
         if selection.course_id in seen:
             raise HTTPException(400, 'Select each course only once.')
@@ -148,15 +185,18 @@ def optimize_catalog(request: CatalogOptimizeRequest):
         faculties = set(selection.faculties)
         if not faculties <= {s['faculty'] for s in course['sections']}:
             raise HTTPException(400, f"Unknown faculty for {course['code']}.")
-        sections = [s for s in course['sections'] if not faculties or s['faculty'] in faculties]
-        courses.append(dict(course_name=f"{course['code']} — {course['title']} ({course['program']})", sections=sections))
+        name = f"{course['code']} — {course['title']} ({course['program']})"
+        preferences['faculties'][name] = [f for f in selection.faculties if f in faculties]
+        courses.append(dict(course_name=name, sections=course['sections']))
     # Search constrained courses first; preserve every valid result within limits.
     courses.sort(key=lambda c: len(c['sections']))
     try:
-        schedules = solve_schedules(courses, max_results=100_000, max_nodes=2_000_000, campus_days=request.campus_days)
+        schedules = ranked_schedules(courses, request.campus_days, preferences)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
-    schedules.sort(key=schedule_score)
     page = schedules[request.offset:request.offset + request.limit]
     return dict(schedules=page, total=len(schedules), offset=request.offset,
+                preference_reports=[preference_report(s, preferences) for s in page],
+                notices=availability_notices(courses, preferences),
+                exact_matches=sum(penalties(s, preferences) == (0, 0) for s in schedules),
                 limit=request.limit, metrics=[dict(zip(('campus_days', 'gap_minutes'), schedule_score(s))) for s in page])
