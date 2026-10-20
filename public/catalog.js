@@ -684,6 +684,48 @@ function renderCatalogList() {
       }
 
       facultyWrapper.appendChild(pillsRow);
+
+      // Per-Course Faculty Priority Option (when 2+ faculty selected)
+      if (preferences.length >= 2) {
+        const priorityControl = document.createElement('div');
+        priorityControl.className = 'faculty-priority-box mt-2 p-2 rounded-xl bg-orange-500/10 border border-orange-500/25 flex items-center justify-between gap-2';
+        priorityControl.innerHTML = `
+          <div class="flex items-center gap-1.5 text-fluid-2xs flex-1 min-w-0">
+            <i class="fa-solid fa-star text-amber-400 flex-shrink-0"></i>
+            <span class="font-bold text-[var(--text-primary)] flex-shrink-0">1st Priority:</span>
+            <select class="faculty-priority-select rounded-lg px-2 py-0.5 text-fluid-2xs font-bold text-orange-400 bg-[var(--bg-secondary)] border border-brandBorder cursor-pointer flex-1 truncate">
+              ${preferences.map((f, i) => `<option value="${escapeHtml(f)}" ${i === 0 ? 'selected' : ''}>${escapeHtml(f)} (#${i + 1}${i === 0 ? ' - 1st Choice' : ''})</option>`).join('')}
+            </select>
+          </div>
+          <button type="button" class="btn-swap-priority text-fluid-2xs font-bold px-2 py-1 rounded-lg bg-[var(--bg-primary)] hover:bg-[var(--bg-card-hover)] border border-brandBorder text-[var(--text-secondary)] hover:text-orange-400 transition-colors flex items-center gap-1 flex-shrink-0" title="Swap priority order">
+            <i class="fa-solid fa-arrow-down-up-across-line text-[10px]"></i> Swap
+          </button>
+        `;
+        const select = priorityControl.querySelector('.faculty-priority-select');
+        select.onclick = (e) => e.stopPropagation();
+        select.onchange = (e) => {
+          e.stopPropagation();
+          const chosen = e.target.value;
+          const reordered = [chosen, ...preferences.filter(f => f !== chosen)];
+          selectedCourses.set(course.id, reordered);
+          invalidateCatalogResults();
+          persistCatalog();
+          renderCatalogList();
+          renderSelectedCourses();
+        };
+        const swapBtn = priorityControl.querySelector('.btn-swap-priority');
+        swapBtn.onclick = (e) => {
+          e.stopPropagation();
+          const reversed = [...preferences].reverse();
+          selectedCourses.set(course.id, reversed);
+          invalidateCatalogResults();
+          persistCatalog();
+          renderCatalogList();
+          renderSelectedCourses();
+        };
+        facultyWrapper.appendChild(priorityControl);
+      }
+
       card.appendChild(facultyWrapper);
     }
 
@@ -709,7 +751,9 @@ function renderCatalogList() {
 
 function renderSelectedCourses() {
   renderConstraintFacultySummary();
+  window.updateGlobalFacultyPriorityDropdown?.();
   window.updateWorkspaceBadges?.();
+  window.syncMobileOptimizeBar?.();
   const container = document.getElementById('selected-courses');
   container.replaceChildren();
   
@@ -770,7 +814,7 @@ function renderSelectedCourses() {
     facultySection.className = 'flex flex-col gap-1.5';
     
     const priorityLabel = preferences.length > 1 
-      ? `${preferences.length} selected (Priority: #${preferences.map((_, i) => i + 1).join(' > #')})` 
+      ? `${preferences.length} selected (Priority: ${preferences.map((f, i) => `#${i + 1} ${escapeHtml(f)}`).join(' > ')})` 
       : (preferences.length === 1 ? '1 selected (Priority #1)' : 'All allowed');
     const facultyLabel = document.createElement('div');
     facultyLabel.className = 'flex items-center justify-between text-fluid-2xs';
@@ -834,6 +878,44 @@ function renderSelectedCourses() {
       pillsRow.appendChild(facPill);
     }
     facultySection.appendChild(pillsRow);
+
+    // Per-Course Faculty Priority Option (when 2+ faculty selected)
+    if (preferences.length >= 2) {
+      const priorityControl = document.createElement('div');
+      priorityControl.className = 'faculty-priority-box mt-2 p-2 rounded-xl bg-orange-500/10 border border-orange-500/25 flex items-center justify-between gap-2';
+      priorityControl.innerHTML = `
+        <div class="flex items-center gap-1.5 text-fluid-2xs flex-1 min-w-0">
+          <i class="fa-solid fa-star text-amber-400 flex-shrink-0"></i>
+          <span class="font-bold text-[var(--text-primary)] flex-shrink-0">1st Priority:</span>
+          <select class="faculty-priority-select rounded-lg px-2 py-0.5 text-fluid-2xs font-bold text-orange-400 bg-[var(--bg-secondary)] border border-brandBorder cursor-pointer flex-1 truncate">
+            ${preferences.map((f, i) => `<option value="${escapeHtml(f)}" ${i === 0 ? 'selected' : ''}>${escapeHtml(f)} (#${i + 1}${i === 0 ? ' - 1st Choice' : ''})</option>`).join('')}
+          </select>
+        </div>
+        <button type="button" class="btn-swap-priority text-fluid-2xs font-bold px-2 py-1 rounded-lg bg-[var(--bg-primary)] hover:bg-[var(--bg-card-hover)] border border-brandBorder text-[var(--text-secondary)] hover:text-orange-400 transition-colors flex items-center gap-1 flex-shrink-0" title="Swap priority order">
+          <i class="fa-solid fa-arrow-down-up-across-line text-[10px]"></i> Swap
+        </button>
+      `;
+      const select = priorityControl.querySelector('.faculty-priority-select');
+      select.onchange = (e) => {
+        const chosen = e.target.value;
+        const reordered = [chosen, ...preferences.filter(f => f !== chosen)];
+        selectedCourses.set(id, reordered);
+        invalidateCatalogResults();
+        persistCatalog();
+        renderCatalogList();
+        renderSelectedCourses();
+      };
+      const swapBtn = priorityControl.querySelector('.btn-swap-priority');
+      swapBtn.onclick = () => {
+        const reversed = [...preferences].reverse();
+        selectedCourses.set(id, reversed);
+        invalidateCatalogResults();
+        persistCatalog();
+        renderCatalogList();
+        renderSelectedCourses();
+      };
+      facultySection.appendChild(priorityControl);
+    }
     card.appendChild(facultySection);
 
     // Collapsible Section Details
@@ -1055,8 +1137,15 @@ async function fetchCatalogSchedules(offset = 0) {
   }
 }
 
-pdfButton.addEventListener('click', () => {
+pdfButton.addEventListener('click', (e) => {
   if (!validateSchedulingPreferences()) return;
+  // Lock scroll position on mobile to prevent jump-to-top when clicking inside <details>
+  if (window.innerWidth < 1024) {
+    const _sy = window.scrollY;
+    const _lock = () => { window.scrollTo({ top: _sy, behavior: 'instant' }); };
+    window.addEventListener('scroll', _lock, { once: true, passive: false });
+    setTimeout(() => window.removeEventListener('scroll', _lock), 400);
+  }
   catalogRequest = {
     catalog_id: catalog.id, campus_days: getCampusDays(), ...getSchedulingPreferences(),
     selections: [...selectedCourses].map(([course_id, faculties]) => ({course_id, faculties: [...faculties]}))
@@ -1135,4 +1224,68 @@ async function loadDefaultRoutine() {
 
   // Pre-load official routine automatically for immediate zero-click readiness!
   await loadDefaultRoutine();
+})();
+
+
+// ── Mobile Fixed Optimize Bar (Option A) ──────────────────────────────────
+(function setupMobileOptimizeBar() {
+  const mobileBar = document.getElementById('mobile-optimize-bar');
+  const mobileBtn = document.getElementById('btn-optimize-pdf-mobile');
+  if (!mobileBar || !mobileBtn) return;
+
+  // Sync mobile button state (disabled + label) to match the real pdfButton
+  function syncMobileBtn() {
+    mobileBtn.disabled = pdfButton.disabled;
+    mobileBtn.innerHTML = pdfButton.innerHTML;
+    if (pdfButton.classList.contains('pulse-ready')) {
+      mobileBtn.classList.add('pulse-ready');
+    } else {
+      mobileBtn.classList.remove('pulse-ready');
+    }
+  }
+
+  // Show or hide the mobile bar based on catalog-panel visibility, active workspace, and screen width
+  function updateMobileBarVisibility() {
+    const catalogPanel = document.getElementById('catalog-panel');
+    const isCoursesWorkspace = (document.body.dataset.workspace || 'courses') === 'courses';
+    const isVisible = window.innerWidth < 1024 && catalogPanel && !catalogPanel.hidden && isCoursesWorkspace;
+    mobileBar.classList.toggle('visible', !!isVisible);
+    document.body.classList.toggle('has-mobile-optimize-bar', !!isVisible);
+    if (isVisible) syncMobileBtn();
+  }
+
+  window.syncMobileOptimizeBar = syncMobileBtn;
+  window.updateMobileBarVisibility = updateMobileBarVisibility;
+
+  // Observe catalog-panel hidden attribute changes
+  const catalogPanel = document.getElementById('catalog-panel');
+  if (catalogPanel) {
+    new MutationObserver(updateMobileBarVisibility).observe(catalogPanel, { attributes: true, attributeFilter: ['hidden'] });
+  }
+
+  // Observe workspace switches (Courses & Faculty vs Schedules)
+  new MutationObserver(updateMobileBarVisibility).observe(document.body, {
+    attributes: true,
+    attributeFilter: ['data-workspace']
+  });
+
+  // Also re-check on resize
+  window.addEventListener('resize', updateMobileBarVisibility, { passive: true });
+
+  // Wire mobile button click → same logic as real pdfButton
+  mobileBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    pdfButton.click();
+  });
+
+  // Sync state whenever pdfButton changes (use a MutationObserver)
+  new MutationObserver(syncMobileBtn).observe(pdfButton, {
+    attributes: true,
+    attributeFilter: ['disabled', 'class'],
+    childList: true,
+    subtree: true,
+  });
+
+  // Initial state
+  updateMobileBarVisibility();
 })();

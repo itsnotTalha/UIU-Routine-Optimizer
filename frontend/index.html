@@ -222,59 +222,83 @@
     <!-- Left Input & Control Station (col-span-5) -->
     <aside id="input-workspace" class="lg:col-span-5 flex flex-col gap-3">
 
-      <details id="schedule-preferences" class="glass rounded-xl p-3 sm:p-4 flex flex-col gap-3">
-        <summary class="cursor-pointer font-bold text-fluid-xs flex items-center justify-between select-none">
-          <span class="flex items-center gap-2 text-[var(--text-primary)]"><i class="fa-solid fa-sliders text-orange-500"></i> Routine Constraints &amp; Time Filters</span>
-          <span id="preferences-summary" class="text-fluid-2xs font-semibold text-[var(--text-muted)]">Require all preferences</span>
+      <details id="schedule-preferences" class="glass rounded-xl overflow-hidden">
+        <summary class="cursor-pointer font-bold text-fluid-xs flex items-center justify-between select-none px-3 sm:px-4 py-3">
+          <span class="flex items-center gap-2 text-[var(--text-primary)]"><i class="fa-solid fa-sliders text-orange-500"></i> Routine Constraints</span>
+          <span id="preferences-summary" class="text-fluid-2xs font-semibold text-[var(--text-muted)]">Any · All preferences</span>
         </summary>
-        <div class="preference-fields grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-3">
-          <label id="week-preferences" for="campus-days" class="flex flex-col gap-1 text-fluid-2xs font-bold text-[var(--text-secondary)]">
-            Campus days per week
-            <select id="campus-days" class="glass-input rounded-xl px-3 py-2 text-fluid-xs font-semibold">
-              <option value="">Any number</option>
-              <option value="3">Exactly 3 days</option>
-              <option value="4">Exactly 4 days</option>
-              <option value="5">Exactly 5 days</option>
-            </select>
-          </label>
-          <div class="flex flex-col gap-1">
-            <label for="earliest-start-select" class="text-fluid-2xs font-bold text-[var(--text-secondary)]">Classes start at or after</label>
-            <div class="flex items-center gap-1.5">
-              <select id="earliest-start-select" class="glass-input rounded-xl px-3 py-2 text-fluid-xs font-semibold flex-1">
-                <option value="">Any start time</option>
+        <div class="preference-fields flex flex-col gap-0 pt-0 divide-y divide-[var(--border-color)]">
+
+          <!-- Sub-group 1: Days -->
+          <div class="px-3 sm:px-4 py-3 flex flex-col gap-2">
+            <span class="text-fluid-2xs font-extrabold uppercase tracking-wider text-orange-500 flex items-center gap-1.5"><i class="fa-solid fa-calendar-days text-[10px]"></i> Days</span>
+            <label for="campus-days" class="flex flex-col gap-1 text-fluid-2xs font-bold text-[var(--text-secondary)]">
+              Campus days per week
+              <select id="campus-days" class="glass-input rounded-xl px-3 py-2 text-fluid-xs font-semibold">
+                <option value="">Any number of days</option>
+                <option value="3">Exactly 3 days</option>
+                <option value="4">Exactly 4 days</option>
+                <option value="5">Exactly 5 days</option>
               </select>
-              <input id="earliest-start" type="time" step="60" class="glass-input rounded-xl px-2 py-1.5 text-fluid-xs font-semibold hidden w-28">
-            </div>
+            </label>
           </div>
-          <div class="flex flex-col gap-1">
-            <label for="latest-end-select" class="text-fluid-2xs font-bold text-[var(--text-secondary)]">Classes finish at or before</label>
-            <div class="flex items-center gap-1.5">
-              <select id="latest-end-select" class="glass-input rounded-xl px-3 py-2 text-fluid-xs font-semibold flex-1">
-                <option value="">Any finish time</option>
-              </select>
-              <input id="latest-end" type="time" step="60" class="glass-input rounded-xl px-2 py-1.5 text-fluid-xs font-semibold hidden w-28">
+
+          <!-- Sub-group 2: Time Window -->
+          <div class="px-3 sm:px-4 py-3 flex flex-col gap-2">
+            <span class="text-fluid-2xs font-extrabold uppercase tracking-wider text-orange-500 flex items-center gap-1.5"><i class="fa-solid fa-clock text-[10px]"></i> Time Window</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div class="flex flex-col gap-1">
+                <label for="earliest-start-select" class="text-fluid-2xs font-bold text-[var(--text-secondary)]">Classes start at or after</label>
+                <div class="flex items-center gap-1.5">
+                  <select id="earliest-start-select" class="glass-input rounded-xl px-3 py-2 text-fluid-xs font-semibold flex-1">
+                    <option value="">Any start time</option>
+                  </select>
+                  <input id="earliest-start" type="time" step="60" class="glass-input rounded-xl px-2 py-1.5 text-fluid-xs font-semibold hidden w-28">
+                </div>
+              </div>
+              <div class="flex flex-col gap-1">
+                <label for="latest-end-select" class="text-fluid-2xs font-bold text-[var(--text-secondary)]">Classes finish at or before</label>
+                <div class="flex items-center gap-1.5">
+                  <select id="latest-end-select" class="glass-input rounded-xl px-3 py-2 text-fluid-xs font-semibold flex-1">
+                    <option value="">Any finish time</option>
+                  </select>
+                  <input id="latest-end" type="time" step="60" class="glass-input rounded-xl px-2 py-1.5 text-fluid-xs font-semibold hidden w-28">
+                </div>
+              </div>
             </div>
-          </div>
-          <label class="flex flex-col gap-1 text-fluid-2xs font-bold text-[var(--text-secondary)] sm:col-span-2 lg:col-span-2">
-            Time vs. faculty priority
-            <select id="preference-priority" class="glass-input rounded-xl px-3 py-2 text-fluid-xs font-semibold">
-              <option value="strict">Require all preferences</option>
-              <option value="time_first">Time first, then faculty</option>
-              <option value="faculty_first">Faculty first, then time</option>
-            </select>
-          </label>
-          <div class="flex items-end">
-            <button id="clear-time-preferences" type="button" class="px-3 py-2 text-fluid-xs font-bold rounded-xl bg-[var(--bg-subtle)] hover:bg-[var(--bg-card-hover)] border border-brandBorder text-[var(--text-muted)] hover:text-red-400 transition-colors w-full">
-              Clear times
+            <button id="clear-time-preferences" type="button" class="self-start px-3 py-1.5 text-fluid-2xs font-bold rounded-lg bg-[var(--bg-subtle)] hover:bg-[var(--bg-card-hover)] border border-brandBorder text-[var(--text-muted)] hover:text-red-400 transition-colors">
+              <i class="fa-solid fa-xmark text-[10px]"></i> Clear Times
             </button>
           </div>
+
+          <!-- Sub-group 3: Priority -->
+          <div class="px-3 sm:px-4 py-3 flex flex-col gap-2">
+            <span class="text-fluid-2xs font-extrabold uppercase tracking-wider text-orange-500 flex items-center gap-1.5"><i class="fa-solid fa-star text-[10px]"></i> Priority</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <label class="flex flex-col gap-1 text-fluid-2xs font-bold text-[var(--text-secondary)]">
+                Optimization priority
+                <select id="preference-priority" class="glass-input rounded-xl px-3 py-2 text-fluid-xs font-semibold">
+                  <option value="strict">Require all preferences (Strict)</option>
+                  <option value="time_first">Time window first, faculty backup</option>
+                  <option value="faculty_first">Faculty preference first, time backup</option>
+                </select>
+              </label>
+              <label class="flex flex-col gap-1 text-fluid-2xs font-bold text-[var(--text-secondary)]" id="global-faculty-priority-label">
+                Prioritize faculty
+                <select id="global-faculty-priority-select" class="glass-input rounded-xl px-3 py-2 text-fluid-xs font-semibold" title="Globally prioritize a specific faculty across all courses">
+                  <option value="">No global preference</option>
+                </select>
+              </label>
+            </div>
+            <p id="priority-help" class="text-fluid-2xs text-[var(--text-muted)] font-medium">Only show routines within your time window and selected faculty.</p>
+          </div>
+
         </div>
-        <div id="constraint-faculty-summary" aria-live="polite" class="hidden">
-          <h3>Selected faculty preferences</h3>
-          <p class="constraint-hint">These are the faculty choices used by the priority setting above.</p>
-          <div id="constraint-faculty-list"></div>
+        <div id="constraint-faculty-summary" aria-live="polite" class="hidden px-3 sm:px-4 pb-3">
+          <h3 class="text-fluid-2xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1">Selected faculty preferences</h3>
+          <p class="constraint-hint text-fluid-2xs text-[var(--text-muted)]">These are the faculty choices used by the priority setting above.</p>
+          <div id="constraint-faculty-list" class="mt-1"></div>
         </div>
-        <p id="priority-help" class="text-fluid-2xs text-[var(--text-muted)] font-medium pt-1">Only show schedules within your time window and selected faculty. Leave either time blank for no limit.</p>
       </details>
       <!-- PDF Mode Container -->
       <div id="pdf-container" class="flex flex-col gap-3">
@@ -310,6 +334,15 @@
                 <i class="fa-solid fa-clock text-orange-500"></i>
                 <span id="time-filter-pill-label">Time: Any</span>
               </button>
+
+              <!-- Quick Faculty Priority Option Pill -->
+              <div class="relative flex-shrink-0 flex items-center">
+                <select id="quick-faculty-priority" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--bg-subtle)] border border-brandBorder text-fluid-2xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer outline-none transition-all" title="Faculty Priority Setting">
+                  <option value="strict">🎯 Faculty: Strict (Required)</option>
+                  <option value="faculty_first">⭐ Faculty: Prioritize 1st Choice</option>
+                  <option value="time_first">⏰ Time 1st, Faculty Backup</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -645,6 +678,23 @@ Wednesday 09:50-11:10</pre>
             <span id="drawer-theme-label" class="text-fluid-2xs font-semibold text-[var(--text-muted)]">Light / Dark</span>
           </button>
 
+          <!-- Faculty Priority Option in Mobile Drawer -->
+          <div class="p-3 rounded-xl bg-[var(--bg-subtle)] border border-brandBorder flex flex-col gap-1.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-user-graduate text-orange-500 text-sm"></i>
+                <span class="text-fluid-xs font-bold text-[var(--text-primary)]">Faculty Priority Option</span>
+              </div>
+              <span class="text-[10px] font-bold text-orange-400 uppercase tracking-wider">Rule</span>
+            </div>
+            <select id="drawer-faculty-priority" class="glass-input rounded-lg px-2.5 py-2 text-fluid-xs font-semibold w-full mt-1">
+              <option value="strict">Strict (Only preferred faculties)</option>
+              <option value="faculty_first">Faculty First (Prioritize #1 choice)</option>
+              <option value="time_first">Time First (Time window over faculty)</option>
+            </select>
+            <p class="text-fluid-2xs text-[var(--text-muted)] font-medium">Controls how routines are sorted when multiple preferred faculties are chosen.</p>
+          </div>
+
           <button id="drawer-reset-all" type="button" class="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-subtle)] hover:bg-[var(--bg-card-hover)] border border-brandBorder text-rose-400 hover:text-rose-300 transition-all text-left cursor-pointer">
             <i class="fa-solid fa-arrow-rotate-left text-base"></i>
             <span class="text-fluid-xs font-bold">Reset All Selections</span>
@@ -690,6 +740,16 @@ Wednesday 09:50-11:10</pre>
 
     </div>
   </dialog>
+  <!-- Mobile Fixed Optimize Bar (shown on mobile only when catalog panel is active) -->
+  <div id="mobile-optimize-bar" class="mobile-optimize-bar">
+    <div class="mobile-optimize-bar-inner">
+      <button id="btn-optimize-pdf-mobile" disabled type="button"
+        class="btn-glow w-full py-3 px-4 rounded-xl bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold text-fluid-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-600/30 disabled:opacity-40 disabled:cursor-not-allowed">
+        <i class="fa-solid fa-bolt"></i> Find Clash-Free Routines
+      </button>
+    </div>
+  </div>
+
   <!-- Application Scripts -->
   <script src="app.js"></script>
   <script src="preferences.js"></script>
