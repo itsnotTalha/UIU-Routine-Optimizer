@@ -30,3 +30,5 @@ Thumbs.db
 # Misc
 *.log
 .env
+# Uploaded routine catalogs
+backend/catalogs/

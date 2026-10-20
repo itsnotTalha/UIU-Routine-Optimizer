@@ -9,8 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.models import OptimizeRequest, OptimizeResponse, SavedCourse
 from backend.parser import parse_section_text
 from backend.optimizer import solve_schedules
+from backend.catalog import router as catalog_router
 
 app = FastAPI(title="Routine Schedule Optimizer")
+app.include_router(catalog_router)
 
 # Enable CORS for development
 app.add_middleware(
@@ -44,7 +46,7 @@ def optimize_schedules(request: OptimizeRequest):
     ]
             
     try:
-        schedules = solve_schedules(parsed_courses)
+        schedules = solve_schedules(parsed_courses, campus_days=request.campus_days)
         return OptimizeResponse(schedules=schedules)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate schedules: {str(e)}")

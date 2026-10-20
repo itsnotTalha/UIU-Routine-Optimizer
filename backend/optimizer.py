@@ -21,7 +21,7 @@ def has_conflict(selected_sections: List[Dict[str, Any]], next_section: Dict[str
                     return True
     return False
 
-def solve_schedules(courses: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
+def solve_schedules(courses: List[Dict[str, Any]], max_results=None, max_nodes=None, campus_days=None) -> List[List[Dict[str, Any]]]:
     """
     Finds all combinations of sections (one per course) that are conflict-free.
     
@@ -61,9 +61,21 @@ def solve_schedules(courses: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]
             return []
 
     results = []
+    nodes = 0
     
     def backtrack(course_idx: int, current_selection: List[Dict[str, Any]]):
+        nonlocal nodes
+        nodes += 1
+        if max_nodes is not None and nodes > max_nodes:
+            raise ValueError("Too many combinations to search. Select fewer courses or narrow faculty preferences.")
+        days = {slot['day'] for item in current_selection for slot in item['section']['slots']}
+        if campus_days is not None and len(days) > campus_days:
+            return
         if course_idx == len(courses):
+            if campus_days is not None and len(days) != campus_days:
+                return
+            if max_results is not None and len(results) >= max_results:
+                raise ValueError("More than 100,000 valid combinations. Narrow faculty preferences or select fewer courses.")
             # Found a valid combination
             results.append(list(current_selection))
             return
@@ -84,3 +96,16 @@ def solve_schedules(courses: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]
 
     backtrack(0, [])
     return results
+
+
+def schedule_score(schedule):
+    """Prefer fewer campus days, then fewer idle minutes between classes."""
+    days = {}
+    for item in schedule:
+        for slot in item['section']['slots']:
+            days.setdefault(slot['day'], []).append((slot['start_mins'], slot['end_mins']))
+    gaps = 0
+    for slots in days.values():
+        slots.sort()
+        gaps += sum(b[0] - a[1] for a, b in zip(slots, slots[1:]))
+    return len(days), gaps

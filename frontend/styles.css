@@ -1,60 +1,164 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
-:root {
-  --bg-primary: #080B11;
-  --bg-secondary: #111622;
-  --bg-tertiary: #1A2133;
-  --text-primary: #F3F4F6;
-  --text-secondary: #9CA3AF;
-  --accent: #6366F1;
-  --accent-glow: rgba(99, 102, 241, 0.15);
-  --border-color: rgba(255, 255, 255, 0.06);
+/* ==========================================================================
+   Fluid Typography & Theme Variables
+   ========================================================================== */
+
+/* Base fluid root font scaling based on both vw and vh */
+html {
+  font-size: clamp(14px, 0.8vw + 0.35vh, 18px);
+  scroll-behavior: smooth;
+}
+
+:root, [data-theme="dark"] {
+  --bg-primary: #111111;
+  --bg-secondary: #191919;
+  --bg-tertiary: #262626;
+  --bg-card: rgba(25, 25, 25, 0.78);
+  --bg-card-hover: rgba(38, 38, 38, 0.9);
+  --bg-subtle: rgba(23, 23, 23, 0.6);
+  --text-primary: #FAFAFA;
+  --text-secondary: #A3A3A3;
+  --text-muted: #737373;
+  --accent: #C2410C;
+  --accent-light: #FB923C;
+  --accent-glow: rgba(234, 88, 12, 0.25);
+  --accent-orange: #EA580C;
+  --accent-emerald: #10B981;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(234, 88, 12, 0.4);
+  --input-bg: rgba(17, 17, 17, 0.65);
+  --input-border: rgba(255, 255, 255, 0.12);
+  --dropzone-bg: rgba(25, 25, 25, 0.45);
+  --dropzone-border: rgba(255, 255, 255, 0.14);
+  --calendar-bg: rgba(17, 17, 17, 0.45);
+  --calendar-border: rgba(255, 255, 255, 0.08);
+  --calendar-line: rgba(255, 255, 255, 0.04);
+  --modal-bg: rgba(25, 25, 25, 0.95);
+  --pill-bg: #262626;
+  --pill-border: rgba(255, 255, 255, 0.08);
+  --pill-text: #D4D4D4;
+  --badge-bg: rgba(234, 88, 12, 0.15);
+  --badge-text: #FDBA74;
+  --shadow-color: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] {
+  --bg-primary: #FAFAFA;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary: #F5F5F5;
+  --bg-card: rgba(255, 255, 255, 0.92);
+  --bg-card-hover: rgba(250, 250, 250, 0.98);
+  --bg-subtle: #F5F5F5;
+  --text-primary: #171717;
+  --text-secondary: #404040;
+  --text-muted: #737373;
+  --accent: #C2410C;
+  --accent-light: #C2410C;
+  --accent-glow: rgba(234, 88, 12, 0.18);
+  --accent-orange: #C2410C;
+  --accent-emerald: #059669;
+  --border-color: #E5E5E5;
+  --border-hover: rgba(234, 88, 12, 0.5);
+  --input-bg: #FFFFFF;
+  --input-border: #D4D4D4;
+  --dropzone-bg: #FAFAFA;
+  --dropzone-border: #D4D4D4;
+  --calendar-bg: #FFFFFF;
+  --calendar-border: #E5E5E5;
+  --calendar-line: rgba(23, 23, 23, 0.06);
+  --modal-bg: #FFFFFF;
+  --pill-bg: #F5F5F5;
+  --pill-border: #D4D4D4;
+  --pill-text: #404040;
+  --badge-bg: rgba(234, 88, 12, 0.1);
+  --badge-text: #9A3412;
+  --shadow-color: rgba(23, 23, 23, 0.08);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   overflow-x: hidden;
+  transition: background-color 0.25s ease, color 0.25s ease;
+  background-image: none;
+  background-attachment: fixed;
 }
 
-/* Custom Scrollbar */
+[data-theme="light"] body {
+  background-image: none;
+}
+
+/* ==========================================================================
+   Fluid Typography Utilities (Scaled with vw and vh)
+   ========================================================================== */
+.text-fluid-2xs { font-size: clamp(0.72rem, 0.6vw + 0.25vh, 0.86rem); }
+.text-fluid-xs  { font-size: clamp(0.82rem, 0.7vw + 0.28vh, 0.98rem); }
+.text-fluid-sm  { font-size: clamp(0.92rem, 0.8vw + 0.32vh, 1.1rem); }
+.text-fluid-base{ font-size: clamp(1.02rem, 0.9vw + 0.36vh, 1.25rem); }
+.text-fluid-lg  { font-size: clamp(1.15rem, 1.05vw + 0.42vh, 1.45rem); }
+.text-fluid-xl  { font-size: clamp(1.35rem, 1.25vw + 0.5vh, 1.75rem); }
+.text-fluid-2xl { font-size: clamp(1.65rem, 1.55vw + 0.62vh, 2.25rem); }
+
+/* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+  background: var(--bg-tertiary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-tertiary);
-  border-radius: 4px;
+  background: var(--pill-bg);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent);
 }
 
-/* Glassmorphism Class */
+/* ==========================================================================
+   Glass & Card Components
+   ========================================================================== */
 .glass {
-  background: rgba(17, 22, 34, 0.65);
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 20px var(--shadow-color);
+}
+
+.glass-card {
+  background: var(--bg-subtle);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-color);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-card-hover);
 }
 
 .glass-input {
-  background: rgba(8, 11, 17, 0.5);
-  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   color: var(--text-primary);
-  transition: all 0.3s ease;
+  font-size: clamp(0.85rem, 0.75vw + 0.3vh, 1.05rem);
+  transition: all 0.2s ease;
 }
 
 .glass-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 10px var(--accent-glow);
+  box-shadow: 0 0 0 3px var(--accent-glow);
   outline: none;
 }
 
@@ -62,31 +166,140 @@ body {
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Gradient text */
+/* Gradient Text */
 .gradient-text {
-  background: linear-gradient(135deg, #A5B4FC 0%, #6366F1 50%, #4F46E5 100%);
+  background: linear-gradient(135deg, #FB923C 0%, #C2410C 50%, #C2410C 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-/* Calendar Styling Transposed */
+[data-theme="light"] .gradient-text {
+  background: linear-gradient(135deg, #C2410C 0%, #9A3412 50%, #9A3412 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ==========================================================================
+   Stepper Navigation
+   ========================================================================== */
+.step-item {
+  position: relative;
+  transition: all 0.25s ease;
+  font-size: clamp(0.78rem, 0.68vw + 0.28vh, 0.95rem);
+}
+
+.step-item.active {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.step-item.active .step-badge {
+  background: var(--accent);
+  color: #FFFFFF;
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.step-item.completed {
+  color: var(--text-secondary);
+}
+
+.step-item.completed .step-badge {
+  background: var(--accent-emerald);
+  color: #FFFFFF;
+}
+
+/* ==========================================================================
+   Dropzone
+   ========================================================================== */
+.dropzone-box {
+  border: 2px dashed var(--dropzone-border);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--dropzone-bg);
+}
+
+.dropzone-box:hover,
+.dropzone-box.dragover {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+/* ==========================================================================
+   Chips, Badges, and Pill Buttons
+   ========================================================================== */
+.filter-chip {
+  transition: all 0.15s ease;
+  user-select: none;
+  font-size: clamp(0.75rem, 0.65vw + 0.26vh, 0.92rem);
+  background: var(--pill-bg);
+  color: var(--text-secondary);
+  border-color: var(--pill-border);
+}
+
+.filter-chip.active {
+  background: var(--accent) !important;
+  color: #FFFFFF !important;
+  border-color: transparent !important;
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+.faculty-pill {
+  transition: all 0.15s ease;
+  cursor: pointer;
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
+  color: var(--text-secondary);
+  font-size: clamp(0.76rem, 0.66vw + 0.26vh, 0.92rem);
+}
+
+.faculty-pill.active {
+  background: var(--accent-glow) !important;
+  border-color: var(--accent) !important;
+  color: var(--text-primary) !important;
+  font-weight: 600;
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* Course card in catalog list */
+.catalog-course-item {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  transition: all 0.18s ease;
+}
+
+.catalog-course-item:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-card-hover);
+}
+
+.catalog-course-item.selected {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+/* ==========================================================================
+   Calendar Grid Transposed
+   ========================================================================== */
 .calendar-container {
   display: flex;
   flex-direction: column;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid var(--border-color);
-  background-color: rgba(255, 255, 255, 0.01);
+  border: 1px solid var(--calendar-border);
+  background-color: var(--calendar-bg);
 }
 
 .calendar-header-row {
   display: grid;
-  grid-template-columns: 110px 1fr;
-  border-bottom: 1px solid var(--border-color);
+  grid-template-columns: clamp(80px, 7vw + 20px, 120px) 1fr;
+  border-bottom: 1px solid var(--calendar-border);
   padding: 12px 0;
-  font-weight: 600;
-  font-size: 0.75rem;
+  font-weight: 700;
+  font-size: clamp(0.75rem, 0.65vw + 0.28vh, 0.95rem);
   color: var(--text-secondary);
+  background: var(--bg-subtle);
 }
 
 .calendar-time-ticks {
@@ -99,7 +312,10 @@ body {
 .calendar-time-ticks span {
   transform: translateX(-50%);
   display: inline-block;
-  font-size: 0.75rem;
+  font-size: clamp(0.74rem, 0.64vw + 0.26vh, 0.92rem);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  color: var(--text-muted);
 }
 
 .calendar-time-ticks span:first-child {
@@ -112,10 +328,16 @@ body {
 
 .day-row {
   display: grid;
-  grid-template-columns: 110px 1fr;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  grid-template-columns: clamp(80px, 7vw + 20px, 120px) 1fr;
+  border-bottom: 1px solid var(--calendar-line);
   align-items: center;
   position: relative;
+  min-height: clamp(68px, 6vh + 20px, 95px);
+  transition: background 0.15s ease;
+}
+
+.day-row:hover {
+  background: var(--accent-glow);
 }
 
 .day-row:last-child {
@@ -123,32 +345,33 @@ body {
 }
 
 .day-row-label {
-  padding-left: 16px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  padding-left: clamp(10px, 1vw + 4px, 18px);
+  font-size: clamp(0.78rem, 0.68vw + 0.28vh, 0.98rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+  border-right: 1px solid var(--calendar-line);
   height: 100%;
   display: flex;
   align-items: center;
-  min-height: 80px;
+  min-height: clamp(68px, 6vh + 20px, 95px);
 }
 
 .day-row-timeline {
   position: relative;
-  height: 80px;
+  height: clamp(68px, 6vh + 20px, 95px);
   padding: 0;
   display: flex;
   align-items: center;
   width: 100%;
 }
 
-/* Vertical hour grid lines overlaying columns */
+/* Vertical hour grid lines */
 .vertical-grid-line {
   position: absolute;
   top: 0;
   bottom: 0;
-  border-right: 1px dashed rgba(255, 255, 255, 0.04);
+  border-right: 1px dashed var(--calendar-line);
   pointer-events: none;
   z-index: 0;
 }
@@ -156,45 +379,49 @@ body {
 /* Class card blocks (horizontal) */
 .class-block-horizontal {
   position: absolute;
-  top: 10px;
-  bottom: 10px;
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 0.75rem;
-  line-height: 1.2;
+  top: 6px;
+  bottom: 6px;
+  border-radius: 9px;
+  padding: clamp(6px, 0.6vw, 10px) clamp(8px, 0.8vw, 12px);
+  font-size: clamp(0.76rem, 0.66vw + 0.28vh, 0.95rem);
+  line-height: 1.35;
   color: #FFFFFF;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px var(--shadow-color);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
-  border-left: 3px solid rgba(255, 255, 255, 0.4);
+  border-left: 3px solid rgba(255, 255, 255, 0.6);
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .class-block-horizontal:hover {
-  transform: translateY(-2px);
-  z-index: 20;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px) scale(1.015);
+  z-index: 30;
+  box-shadow: 0 8px 24px var(--shadow-color);
+  filter: brightness(1.12);
 }
 
 /* Animated glow buttons */
 .btn-glow {
   position: relative;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
 }
 
 .btn-glow::after {
   content: '';
   position: absolute;
   top: 0;
-  left: -50%;
-  width: 200%;
+  left: -60%;
+  width: 220%;
   height: 100%;
   background: linear-gradient(
     to right,
     rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.2) 50%,
     rgba(255, 255, 255, 0) 100%
   );
   transform: skewX(-25deg);
@@ -205,13 +432,185 @@ body {
   left: 125%;
 }
 
-/* Course colors list for rendering */
-.course-color-0 { background: linear-gradient(135deg, #4F46E5, #6366F1); }
-.course-color-1 { background: linear-gradient(135deg, #059669, #10B981); }
-.course-color-2 { background: linear-gradient(135deg, #DC2626, #EF4444); }
-.course-color-3 { background: linear-gradient(135deg, #D97706, #F59E0B); }
-.course-color-4 { background: linear-gradient(135deg, #7C3AED, #8B5CF6); }
-.course-color-5 { background: linear-gradient(135deg, #2563EB, #3B82F6); }
-.course-color-6 { background: linear-gradient(135deg, #0891B2, #06B6D4); }
-.course-color-7 { background: linear-gradient(135deg, #DB2777, #EC4899); }
-.course-color-fallback { background: linear-gradient(135deg, #4B5563, #6B7280); }
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px var(--accent-glow);
+  }
+  50% {
+    box-shadow: 0 0 25px var(--accent-glow);
+  }
+}
+
+.pulse-ready {
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+/* High Contrast Course Colors */
+.course-color-0 { background: #C2410C; }
+.course-color-1 { background: #404040; }
+.course-color-2 { background: #9A3412; }
+.course-color-3 { background: #737373; }
+.course-color-4 { background: #EA580C; }
+.course-color-5 { background: #525252; }
+.course-color-6 { background: #7C2D12; }
+.course-color-7 { background: #262626; }
+.course-color-fallback { background: #525252; }
+
+[hidden] { display: none !important; }
+
+/* Viewport workspace: only data regions scroll; primary controls stay visible. */
+html { font-size: 14px; }
+body { height: 100dvh; min-height: 0 !important; overflow: hidden; }
+body > header { flex: 0 0 auto; padding: 10px 18px !important; }
+body > header > div { max-width: none !important; }
+body > footer { flex: 0 0 auto; padding: 5px 12px !important; font-size: 10px; }
+#workspace {
+  flex: 1 1 0; min-height: 0; max-width: none; overflow: hidden;
+  grid-template-columns: minmax(340px, 32%) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr); padding: 12px; gap: 12px;
+}
+#input-workspace, #schedule-workspace {
+  grid-column: auto; min-width: 0; min-height: 0; gap: 10px;
+}
+#input-workspace > :first-child { flex-shrink: 0; }
+#pdf-container, #manual-panel { flex: 1 1 0; min-height: 0; gap: 10px; }
+#pdf-drop-card { flex: 0 0 auto; padding: 12px; gap: 8px; max-height: 40%; overflow: auto; }
+#pdf-active-card { padding: 8px; }
+#import-status:empty { display: none; }
+#import-status { max-height: 60px; overflow: auto; }
+#import-warnings { max-height: 100px; overflow: auto; }
+#catalog-panel {
+  flex: 1 1 0; min-height: 0; padding: 12px; gap: 8px;
+  display: grid; grid-template-rows: auto auto minmax(70px, 1fr) minmax(100px, 1.15fr) auto;
+}
+#catalog-panel > :first-child { flex-wrap: wrap; gap: 4px; }
+#catalog-count { font-size: 11px; }
+#catalog-search { padding-top: 8px; padding-bottom: 8px; font-size: 13px; }
+#program-filters { padding: 0; flex-shrink: 0; }
+#catalog-list, #selected-courses, #course-list-container {
+  min-height: 0; max-height: none; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable;
+}
+#catalog-list > *, #selected-courses > *, #course-list-container > * { flex-shrink: 0; }
+#catalog-list .catalog-course-item { padding: 8px; gap: 8px; }
+#faculty-panel { min-height: 0; gap: 6px; padding-top: 8px; }
+#faculty-panel > :first-child { flex-shrink: 0; }
+#selected-courses { flex: 1 1 0; }
+#selected-courses > div { padding: 10px; }
+#catalog-actions { padding-top: 8px; gap: 4px; }
+#btn-optimize-pdf, #btn-optimize { padding-top: 10px; padding-bottom: 10px; }
+#catalog-actions > p { font-size: 10px; }
+#manual-panel > .glass { flex: 1 1 0; min-height: 0; padding: 12px; gap: 10px; }
+#manual-panel > .glass > :not(#course-list-container) { flex-shrink: 0; }
+#manual-panel details { max-height: 25%; overflow: auto; }
+#course-list-container { flex: 1 1 0; }
+#empty-state { min-height: 0; padding: 24px; gap: 20px; overflow: auto; }
+#results-view { min-width: 0; min-height: 0; gap: 10px; }
+#results-view > :not(#timetable-panel) { flex-shrink: 0; padding: 10px; min-width: 0; }
+#results-view > :first-child { flex-wrap: wrap; }
+#option-selector-container { flex: 1 1 0; min-width: 0; }
+#option-selector-container > button { flex-shrink: 0; }
+#page-label { white-space: nowrap; }
+#timetable-panel { flex: 1 1 0; min-height: 0; padding: 12px; gap: 10px; }
+#timetable-panel > :first-child { flex-shrink: 0; }
+#calendar-scroll { flex: 1 1 0; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+#calendar-export-target { min-width: 760px; height: 100%; min-height: 430px; display: flex; flex-direction: column; padding: 8px; }
+#calendar-grid-body { flex: 1 1 0; min-height: 0; }
+#calendar-export-target .calendar-header-row { flex-shrink: 0; padding: 8px 0; }
+#calendar-export-target .day-row { flex: 1 1 0; min-height: 0; }
+#calendar-export-target .day-row-label, #calendar-export-target .day-row-timeline { height: 100%; min-height: 0; }
+#calendar-export-target .day-row, #calendar-export-target .calendar-header-row { grid-template-columns: 85px 1fr; }
+#calendar-export-target .day-row-label { font-size: 11px; padding-left: 8px; }
+#calendar-export-target .calendar-time-ticks span { font-size: 10px; }
+#calendar-export-target .class-block-horizontal { top: 3px; bottom: 3px; padding: 4px 6px; }
+#details-modal > div { max-height: 90dvh; overflow-y: auto; }
+.workspace-switch { display: none; }
+:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 2px; }
+
+@media (max-width: 900px) {
+  .workspace-switch { display: flex; flex-shrink: 0; gap: 6px; padding: 6px 12px 0; }
+  .workspace-switch button { flex: 1; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; font-weight: 700; font-size: 12px; background: var(--bg-card); color: var(--text-secondary); }
+  .workspace-switch button[aria-pressed="true"] { background: var(--accent); color: white; }
+  #workspace { grid-template-columns: minmax(0, 1fr); padding: 8px; }
+  body[data-workspace="courses"] #schedule-workspace,
+  body[data-workspace="schedules"] #input-workspace { display: none; }
+  body > header { padding: 8px !important; }
+  body > header > div { gap: 8px; }
+  body > footer { display: none; }
+  #pdf-drop-card > :first-child { display: none; }
+  #pdf-drop-card { padding: 8px; }
+  #catalog-panel { padding: 10px; }
+  #empty-state { justify-content: flex-start; padding: 20px; }
+  #schedule-workspace { overflow: auto; }
+}
+@media (max-height: 700px) {
+  #pdf-drop-card > :first-child, #catalog-actions > p { display: none; }
+  #pdf-drop-card { padding: 8px; }
+  #catalog-panel { gap: 6px; }
+  #empty-state { gap: 12px; padding: 16px; }
+  #empty-state > .grid { display: none; }
+}
+@media (max-height: 520px) {
+  /* At extreme zoom/landscape sizes, retain access via panel-local scrolling. */
+  #input-workspace { overflow-y: auto; }
+  #pdf-container, #manual-panel { flex: 0 0 auto; }
+  #catalog-panel { min-height: 420px; }
+  #pdf-drop-card { max-height: none; }
+}
+#calendar-export-target .class-block-horizontal > div {
+  flex: 0 0 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.35; width: 100%; text-align: left;
+}
+.calendar-course { font-size: 11px; font-weight: 800; }
+.calendar-section { font-size: 9px; opacity: .95; }
+.calendar-time { font-size: 9px; opacity: .9; }
+@media (max-width: 600px) {
+  body > header h1 { font-size: 12px; }
+  body > header h1 + span { display: none; }
+  body > header > div > :first-child { gap: 6px; }
+  body > header > div > :last-child { gap: 4px; }
+  body > header a[href*="github"] { display: none; }
+}
+
+/* Selection and results each own the entire workspace, at every screen size. */
+.workspace-switch { display: flex; flex-shrink: 0; gap: 6px; padding: 6px 12px 0; }
+.workspace-switch button { border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 20px; font-size: 12px; font-weight: 700; background: var(--bg-card); color: var(--text-secondary); }
+.workspace-switch button[aria-pressed="true"] { background: var(--accent); color: white; }
+#workspace { grid-template-columns: minmax(0, 1fr); }
+body[data-workspace="courses"] #schedule-workspace,
+body[data-workspace="schedules"] #input-workspace { display: none; }
+#week-preferences { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 8px 12px; flex-shrink: 0; }
+#week-preferences label { font-size: 12px; font-weight: 700; }
+#week-preferences select { padding: 6px 10px; font-size: 12px; }
+#week-preferences span { font-size: 11px; color: var(--text-muted); }
+#error-state { flex-shrink: 0; max-height: 100px; overflow: auto; padding: 10px; }
+@media (min-width: 901px) {
+  #catalog-panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; column-gap: 20px; }
+  #catalog-panel > :first-child { grid-column: 1; grid-row: 1; }
+  #catalog-panel > :nth-child(2) { grid-column: 1; grid-row: 2; }
+  #catalog-list { grid-column: 1; grid-row: 3; }
+  #faculty-panel { grid-column: 2; grid-row: 1 / 4; border-top: 0; border-left: 1px solid var(--border-color); padding: 0 0 0 20px; }
+  #catalog-actions { grid-column: 1 / -1; grid-row: 4; align-items: center; }
+  #btn-optimize-pdf { max-width: 420px; }
+  #pdf-drop-card { padding: 8px 12px; }
+  #pdf-drop-card > :first-child { display: none; }
+  #pdf-active-card { padding: 6px 10px; }
+  #course-list-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-content: start; }
+}
+@media (max-width: 900px) {
+  #week-preferences { gap: 6px; padding: 6px 10px; }
+  #week-preferences span { display: none; }
+}
+.workspace-switch button:disabled { opacity: .4; cursor: not-allowed; }
+@media (min-width: 901px) {
+  #input-workspace { display: grid; grid-template-columns: minmax(300px, .85fr) minmax(0, 1.15fr); grid-template-rows: auto auto minmax(0, 1fr); gap: 8px 12px; }
+  #input-workspace > :first-child { grid-column: 1; grid-row: 1; }
+  #week-preferences { grid-column: 2; grid-row: 1; }
+  #error-state { grid-column: 1 / -1; grid-row: 2; }
+  #pdf-container, #manual-panel { grid-column: 1 / -1; grid-row: 3; }
+}
+
+/* Orange accents on neutral surfaces, with readable text in both themes. */
+[data-theme="light"] .text-orange-400,
+[data-theme="light"] .text-orange-500 { color: #C2410C; }
+[data-theme="dark"] .text-orange-400,
+[data-theme="dark"] .text-orange-500 { color: #FB923C; }
