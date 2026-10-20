@@ -9,7 +9,7 @@ from backend.models import CatalogOptimizeRequest
 from backend.optimizer import solve_schedules, schedule_score
 from backend.pdf_import import import_pdf
 
-router = APIRouter(prefix='/api')
+router = APIRouter()
 CATALOG_DIR = Path(__file__).parent / 'catalogs'
 TMP_CATALOG_DIR = Path('/tmp/catalogs')
 MAX_UPLOAD = 20 * 1024 * 1024

@@ -12,7 +12,8 @@ from backend.optimizer import solve_schedules
 from backend.catalog import router as catalog_router
 
 app = FastAPI(title="Routine Schedule Optimizer")
-app.include_router(catalog_router)
+app.include_router(catalog_router, prefix="/api")
+app.include_router(catalog_router, prefix="")
 
 # Enable CORS for development
 app.add_middleware(
@@ -24,6 +25,7 @@ app.add_middleware(
 )
 
 @app.post("/api/optimize", response_model=OptimizeResponse)
+@app.post("/optimize", response_model=OptimizeResponse)
 def optimize_schedules(request: OptimizeRequest):
     if not request.courses:
         return OptimizeResponse(schedules=[])
@@ -107,10 +109,12 @@ def _write_saved_courses(courses: List[SavedCourse]) -> None:
         temp_file.replace(TMP_COURSES_FILE)
 
 @app.get("/api/courses", response_model=List[SavedCourse])
+@app.get("/courses", response_model=List[SavedCourse])
 def get_courses():
     return _read_saved_courses()
 
 @app.post("/api/courses")
+@app.post("/courses")
 def save_courses(courses: List[SavedCourse]):
     try:
         _write_saved_courses(courses)
@@ -120,6 +124,7 @@ def save_courses(courses: List[SavedCourse]):
 
 
 @app.put("/api/courses/{course_id}", response_model=SavedCourse)
+@app.put("/courses/{course_id}", response_model=SavedCourse)
 def update_course(course_id: int, course: SavedCourse):
     try:
         current_courses = _read_saved_courses()
@@ -145,6 +150,7 @@ def update_course(course_id: int, course: SavedCourse):
 
 
 @app.delete("/api/courses/{course_id}")
+@app.delete("/courses/{course_id}")
 def delete_course(course_id: int):
     try:
         current_courses = _read_saved_courses()
