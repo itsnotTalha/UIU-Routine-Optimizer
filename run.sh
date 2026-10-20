@@ -24,5 +24,5 @@ pip install --upgrade pip
 pip install -r requirements.txt
 
 # 4. Run the application
-echo "Starting Routine Schedule Optimizer Server on http://127.0.0.1:8000 ..."
-uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+echo "Starting UIU Routine Optimizer Server on http://127.0.0.1:8000 (and across your Wi-Fi network on your PC's IP) ..."
+uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload

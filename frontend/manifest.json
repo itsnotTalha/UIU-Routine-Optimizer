@@ -1,0 +1,19 @@
+{
+  "name": "UIU Routine Optimizer",
+  "short_name": "UIU Routine",
+  "description": "Intelligent, Conflict-Free Timetable Generator for UIU Students",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#EA580C",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
