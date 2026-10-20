@@ -95,8 +95,8 @@ function switchMode(mode) {
   }
 }
 
-if (tabPdf) tabPdf.addEventListener('click', () => switchMode('pdf'));
-if (tabManual) tabManual.addEventListener('click', () => switchMode('manual'));
+if (tabPdf) tabPdf.addEventListener('click', () => { switchMode('pdf'); renderConstraintFacultySummary(); });
+if (tabManual) tabManual.addEventListener('click', () => { switchMode('manual'); renderConstraintFacultySummary(); });
 
 function updateDownloadButtonState() {
   if (!btnDownloadSchedule) return;
@@ -381,6 +381,7 @@ function updateCourseCount() {
 
 // Render schedule on the calendar
 function renderCalendarSchedule(schedule) {
+  window.renderPreferenceReport?.(selectedScheduleIndex);
   const slots = schedule.flatMap(item => item.section.slots);
   START_MINS = Math.floor(Math.min(510, ...slots.map(s => s.start_mins)) / 60) * 60;
   END_MINS = Math.ceil(Math.max(1230, ...slots.map(s => s.end_mins)) / 60) * 60;
@@ -470,12 +471,16 @@ function hideDetailsModal() {
 
 // Generate selectors for schedules
 function renderOptionSelectors() {
-  optionSelectorContainer.innerHTML = '';
+  const container = document.getElementById('option-selector-container');
+  if (!container) return;
+  container.innerHTML = '';
   
-  optimizedSchedules.forEach((sch, idx) => {
+  const schedules = (typeof optimizedSchedules !== 'undefined' && Array.isArray(optimizedSchedules)) ? optimizedSchedules : [];
+  schedules.forEach((sch, idx) => {
     const pill = document.createElement('button');
+    pill.type = 'button';
     const isSelected = idx === selectedScheduleIndex;
-    pill.className = `px-3 py-1.5 text-fluid-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 whitespace-nowrap shadow-sm ${
+    pill.className = `px-3.5 py-1.5 text-fluid-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 whitespace-nowrap shadow-sm flex-shrink-0 cursor-pointer ${
       isSelected 
         ? 'bg-orange-600 text-white border-orange-500 shadow-orange-600/30 ring-2 ring-orange-500/30' 
         : 'bg-[var(--pill-bg)] text-[var(--text-secondary)] border-brandBorder hover:border-neutral-500 hover:text-[var(--text-primary)]'
@@ -487,12 +492,13 @@ function renderOptionSelectors() {
     pill.addEventListener('click', () => {
       selectedScheduleIndex = idx;
       renderOptionSelectors();
-      renderCalendarSchedule(optimizedSchedules[idx]);
+      renderCalendarSchedule(schedules[idx]);
       if (window.updateScheduleMetrics) window.updateScheduleMetrics(idx);
     });
-    optionSelectorContainer.appendChild(pill);
+    container.appendChild(pill);
   });
 }
+window.renderOptionSelectors = renderOptionSelectors;
 
 // Show errors
 function showError(msg) {
@@ -506,6 +512,7 @@ function showError(msg) {
 
 // Optimize Routine Action (Manual)
 async function optimizeRoutine() {
+  if (!validateSchedulingPreferences()) return;
   if (window.cancelCatalogSearch) window.cancelCatalogSearch();
   window.scheduleOffset = 0;
   const pagination = document.getElementById('schedule-pagination');
@@ -548,7 +555,7 @@ async function optimizeRoutine() {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ courses: payloadCourses, campus_days: getCampusDays() })
+      body: JSON.stringify({ courses: payloadCourses, campus_days: getCampusDays(), ...getSchedulingPreferences() })
     });
 
     if (!response.ok) {
@@ -558,10 +565,12 @@ async function optimizeRoutine() {
 
     const data = await response.json();
     optimizedSchedules = data.schedules;
+    window.schedulePreferenceReports = data.preference_reports || [];
+    window.scheduleAvailabilityNotices = [];
     selectedScheduleIndex = 0;
 
     if (optimizedSchedules.length === 0) {
-      showError("No valid conflict-free combinations could be found for the defined courses. Check for time slot clashes.");
+      showError("No valid conflict-free combinations could be found for the defined courses. Try widening the time window or choosing Time first to allow alternatives.");
       return;
     }
 
@@ -650,6 +659,7 @@ function updateWorkspaceBadges() {
   if (scheduleBadge) {
     const total = (typeof catalogTotal !== 'undefined' && catalogTotal) ? catalogTotal : (typeof optimizedSchedules !== 'undefined' ? optimizedSchedules.length : 0);
     scheduleBadge.textContent = total;
+    scheduleBadge.classList.toggle('hidden', !total);
   }
 }
 window.updateWorkspaceBadges = updateWorkspaceBadges;
@@ -673,8 +683,15 @@ function getCampusDays() {
   return Number(document.getElementById('campus-days').value) || null;
 }
 document.getElementById('campus-days').addEventListener('change', () => {
+  refreshPreferenceSummary();
   invalidateCatalogResults();
   if (catalog) persistCatalog();
 });
 // Keep errors with the selection controls while the timetable is hidden.
-document.getElementById('input-workspace').insertBefore(errorState, document.getElementById('week-preferences'));
+const weekPref = document.getElementById('week-preferences');
+const inputWorkspace = document.getElementById('input-workspace');
+if (errorState && weekPref && weekPref.parentNode === inputWorkspace) {
+  inputWorkspace.insertBefore(errorState, weekPref);
+} else if (errorState && inputWorkspace) {
+  inputWorkspace.prepend(errorState);
+}

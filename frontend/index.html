@@ -85,8 +85,9 @@
         </div>
       </nav>
 
+      <button id="mobile-menu-open" type="button" aria-label="Open menu" aria-controls="mobile-menu" aria-expanded="false"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>
       <!-- Right Actions (Theme Toggle, Reset, GitHub) -->
-      <div class="flex items-center gap-2.5">
+      <div id="header-secondary-actions" class="flex items-center gap-2.5">
         
         <!-- Light / Dark Theme Switcher Button -->
         <button id="btn-theme-toggle" type="button" title="Switch Theme (Light/Dark)" aria-label="Toggle light or dark theme" class="px-2.5 py-1.5 rounded-xl bg-[var(--bg-subtle)] hover:bg-[var(--bg-card-hover)] border border-brandBorder transition-all flex items-center justify-center shadow-sm">
@@ -222,6 +223,33 @@
     <!-- Left Input & Control Station (col-span-5) -->
     <aside id="input-workspace" class="lg:col-span-5 flex flex-col gap-3">
 
+      <details id="schedule-preferences" class="glass rounded-xl">
+        <summary>Routine constraints <span id="preferences-summary">Require all preferences</span></summary>
+        <div class="preference-fields">
+          <label id="week-preferences" for="campus-days">Campus days per week
+            <select id="campus-days">
+              <option value="">Any number</option>
+              <option value="3">Exactly 3 days</option>
+              <option value="4">Exactly 4 days</option>
+              <option value="5">Exactly 5 days</option>
+            </select>
+          </label>
+          <label>Classes start at or after<input id="earliest-start" type="time" step="60"></label>
+          <label>Classes finish at or before<input id="latest-end" type="time" step="60"></label>
+          <label>Time vs. faculty priority<select id="preference-priority">
+            <option value="strict">Require all preferences</option>
+            <option value="time_first">Time first, then faculty</option>
+            <option value="faculty_first">Faculty first, then time</option>
+          </select></label>
+          <button id="clear-time-preferences" type="button">Clear times</button>
+        </div>
+        <div id="constraint-faculty-summary" aria-live="polite">
+          <h3>Selected faculty preferences</h3>
+          <p class="constraint-hint">These are the faculty choices used by the priority setting above.</p>
+          <div id="constraint-faculty-list"></div>
+        </div>
+        <p id="priority-help">Only show schedules within your time window and selected faculty. Leave either time blank for no limit.</p>
+      </details>
       <!-- PDF Mode Container -->
       <div id="pdf-container" class="flex flex-col gap-3">
 
@@ -235,39 +263,28 @@
             <span id="catalog-count" class="text-fluid-xs font-bold text-orange-500">0 selected</span>
           </div>
 
-          <!-- Search & Filter Bar with Integrated Campus Days -->
-          <div class="flex flex-col gap-2.5">
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-              <div class="relative flex-1">
-                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-[var(--text-muted)] text-sm"></i>
-                <input id="catalog-search" type="search" class="glass-input rounded-xl pl-9 pr-9 py-2.5 w-full font-medium" placeholder="Search code (CSE 1111), acronym (AI, OOP, SPL, DLD), or name...">
-                <button id="btn-clear-search" type="button" class="absolute right-3 top-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm hidden">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-              </div>
-
-              <!-- Campus Days Filter placed directly inside course selection filters -->
-              <div id="week-preferences" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--bg-subtle)] border border-brandBorder text-fluid-xs flex-shrink-0">
-                <label for="campus-days" class="font-bold text-[var(--text-secondary)] flex items-center gap-1 whitespace-nowrap text-fluid-2xs">
-                  <i class="fa-solid fa-calendar-day text-orange-500"></i> Days:
-                </label>
-                <select id="campus-days" class="bg-transparent font-bold text-[var(--text-primary)] cursor-pointer outline-none text-fluid-2xs">
-                  <option value="" class="bg-[var(--bg-secondary)]">Any days</option>
-                  <option value="3" class="bg-[var(--bg-secondary)]">3 Days</option>
-                  <option value="4" class="bg-[var(--bg-secondary)]">4 Days</option>
-                  <option value="5" class="bg-[var(--bg-secondary)]">5 Days</option>
-                </select>
-              </div>
+          <!-- Search and program filters -->
+          <div class="flex flex-col gap-2">
+            <div class="relative">
+              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-[var(--text-muted)] text-sm"></i>
+              <input id="catalog-search" type="search" class="glass-input rounded-xl pl-9 pr-9 py-2.5 w-full font-medium" placeholder="Search code (CSE 1111), acronym (AI, OOP, SPL, DLD), or name...">
+              <button id="btn-clear-search" type="button" class="absolute right-3 top-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm hidden">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
             </div>
 
-            <!-- Program Filters Container -->
-            <div id="program-filters" class="flex items-center gap-2 overflow-x-auto py-1">
-              <button type="button" data-program="" class="filter-chip active px-3 py-1 rounded-lg font-bold">All Programs</button>
+            <!-- Program filters -->
+            <div class="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none">
+              <div id="program-filters" class="flex items-center gap-1.5 flex-shrink-0">
+                <button type="button" data-program="" class="filter-chip active px-3 py-1.5 rounded-lg font-bold text-fluid-2xs">All Programs</button>
+              </div>
+
+
             </div>
           </div>
 
-          <!-- Searchable Course List -->
-          <div id="catalog-list" tabindex="0" aria-label="Available courses" class="flex flex-col gap-2 max-h-[260px] overflow-y-auto pr-1"></div>
+          <!-- Searchable Course List (Smooth, full-height feed) -->
+          <div id="catalog-list" tabindex="0" aria-label="Available courses" class="flex flex-col gap-2.5"></div>
 
           <!-- Selected Courses & Faculty Panel -->
           <div id="faculty-panel" class="border-t border-brandBorder pt-3.5 flex flex-col gap-2.5">
@@ -278,18 +295,18 @@
               <button id="btn-clear-selected" type="button" class="text-fluid-2xs font-semibold text-[var(--text-muted)] hover:text-red-500 transition-colors">Clear all</button>
             </div>
             
-            <div id="selected-courses" tabindex="0" aria-label="Selected courses and faculty preferences" class="flex flex-col gap-2.5 max-h-[230px] overflow-y-auto pr-1">
+            <div id="selected-courses" tabindex="0" aria-label="Selected courses and faculty preferences" class="flex flex-col gap-2.5 max-h-[300px] overflow-y-auto pr-1">
               <p class="text-fluid-xs text-[var(--text-muted)] italic py-3 text-center">Select courses above to configure faculty preferences.</p>
             </div>
           </div>
 
           <!-- Action Button: Find combinations -->
-          <div id="catalog-actions" class="pt-2 border-t border-brandBorder flex flex-col gap-2">
-            <button id="btn-optimize-pdf" disabled class="btn-glow w-full py-3.5 rounded-xl bg-gradient-to-r from-orange-600 to-orange-600 hover:from-orange-500 hover:to-orange-500 text-white font-bold text-fluid-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-600/25 disabled:opacity-40 disabled:cursor-not-allowed">
+          <div id="catalog-actions" class="pt-2 border-t border-brandBorder flex flex-col gap-1">
+            <button id="btn-optimize-pdf" disabled class="btn-glow w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold text-fluid-xs transition-all flex items-center justify-center gap-2 shadow-md shadow-orange-600/25 disabled:opacity-40 disabled:cursor-not-allowed">
               <i class="fa-solid fa-bolt"></i> Find Clash-Free Routines
             </button>
             <p class="text-fluid-2xs text-[var(--text-muted)] text-center flex items-center justify-center gap-1 font-medium">
-              <i class="fa-solid fa-chart-simple"></i> Ranked by fewest campus days &amp; minimal gap time
+              <i class="fa-solid fa-chart-simple"></i> Ranked by your priorities, then campus days &amp; gaps
             </p>
           </div>
         </div>
@@ -424,14 +441,14 @@ Wednesday 09:50-11:10</pre>
         </div>
 
         <!-- Options Selector Pills & Pagination -->
-        <div class="glass rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div class="glass rounded-xl p-3 flex flex-col md:flex-row md:items-center justify-between gap-2.5">
           <!-- Option Pills -->
-          <div class="flex items-center gap-2 overflow-x-auto py-0.5 max-w-full" id="option-selector-container">
+          <div class="flex items-center gap-2 overflow-x-auto py-1 w-full min-h-[40px]" id="option-selector-container">
             <!-- Dynamically generated schedule option pills -->
           </div>
 
           <!-- Pagination -->
-          <div id="schedule-pagination" hidden class="flex items-center gap-2 text-fluid-xs flex-shrink-0 self-end sm:self-auto">
+          <div id="schedule-pagination" hidden class="flex items-center gap-2 text-fluid-xs flex-shrink-0 self-end md:self-auto">
             <button id="page-prev" class="rounded-lg bg-[var(--pill-bg)] hover:bg-[var(--bg-card-hover)] px-3 py-1.5 font-bold disabled:opacity-40 border border-brandBorder shadow-sm">
               <i class="fa-solid fa-chevron-left text-xs"></i>
             </button>
@@ -442,6 +459,10 @@ Wednesday 09:50-11:10</pre>
           </div>
         </div>
 
+        <div id="preference-report" hidden role="status" aria-live="polite" class="glass rounded-xl">
+          <strong id="preference-report-title"></strong>
+          <ul id="preference-report-list"></ul>
+        </div>
         <!-- Weekly Timetable Card -->
         <div id="timetable-panel" class="glass rounded-xl p-4 flex flex-col gap-3 overflow-hidden">
           
@@ -562,8 +583,15 @@ Wednesday 09:50-11:10</pre>
     UIU Routine Optimizer &bull; Fast conflict-free solver for United International University students
   </footer>
 
+  <dialog id="mobile-menu" aria-labelledby="mobile-menu-title">
+    <div class="mobile-menu-heading"><h2 id="mobile-menu-title">Menu</h2><button id="mobile-menu-close" type="button" aria-label="Close menu"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
+    <div id="mobile-menu-content"></div>
+  </dialog>
+  <div id="mobile-action-dock" hidden></div>
   <!-- Application Scripts -->
   <script src="app.js"></script>
+  <script src="preferences.js"></script>
   <script src="catalog.js"></script>
+  <script src="mobile.js"></script>
 </body>
 </html>
