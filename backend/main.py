@@ -52,21 +52,31 @@ def optimize_schedules(request: OptimizeRequest):
         raise HTTPException(status_code=500, detail=f"Failed to generate schedules: {str(e)}")
 
 COURSES_FILE = Path(__file__).resolve().parent / "courses.json"
+TMP_COURSES_FILE = Path("/tmp/courses.json")
 
 
 def _courses_file_path() -> Path:
+    if TMP_COURSES_FILE.exists():
+        return TMP_COURSES_FILE
     return Path(COURSES_FILE)
 
 
 def _ensure_courses_file_parent() -> None:
-    _courses_file_path().parent.mkdir(parents=True, exist_ok=True)
+    path = _courses_file_path()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        TMP_COURSES_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 
 def _read_saved_courses() -> List[SavedCourse]:
     courses_file = _courses_file_path()
 
     if not courses_file.exists():
-        return []
+        if courses_file != TMP_COURSES_FILE and TMP_COURSES_FILE.exists():
+            courses_file = TMP_COURSES_FILE
+        else:
+            return []
 
     try:
         with courses_file.open("r", encoding="utf-8") as f:
@@ -81,13 +91,20 @@ def _read_saved_courses() -> List[SavedCourse]:
 
 
 def _write_saved_courses(courses: List[SavedCourse]) -> None:
-    _ensure_courses_file_parent()
-
     courses_file = _courses_file_path()
-    temp_file = courses_file.with_suffix(".json.tmp")
-    with temp_file.open("w", encoding="utf-8") as f:
-        json.dump([course.model_dump() for course in courses], f, indent=2)
-    temp_file.replace(courses_file)
+    try:
+        _ensure_courses_file_parent()
+        temp_file = courses_file.with_suffix(".json.tmp")
+        with temp_file.open("w", encoding="utf-8") as f:
+            json.dump([course.model_dump() for course in courses], f, indent=2)
+        temp_file.replace(courses_file)
+    except OSError:
+        # Fallback to /tmp on serverless environments like Vercel
+        TMP_COURSES_FILE.parent.mkdir(parents=True, exist_ok=True)
+        temp_file = TMP_COURSES_FILE.with_suffix(".json.tmp")
+        with temp_file.open("w", encoding="utf-8") as f:
+            json.dump([course.model_dump() for course in courses], f, indent=2)
+        temp_file.replace(TMP_COURSES_FILE)
 
 @app.get("/api/courses", response_model=List[SavedCourse])
 def get_courses():

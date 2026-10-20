@@ -1,0 +1,13 @@
+.git
+.github
+.pytest_cache
+.vscode
+venv/
+lib/
+backend/tests/
+*.swp
+*.bat
+run.sh
+backend/courses.json
+courses.json
+
