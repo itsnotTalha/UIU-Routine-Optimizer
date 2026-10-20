@@ -99,8 +99,6 @@ if (tabPdf) tabPdf.addEventListener('click', () => switchMode('pdf'));
 if (tabManual) tabManual.addEventListener('click', () => switchMode('manual'));
 
 function updateDownloadButtonState() {
-  const scheduleTab = document.querySelector('button[data-workspace="schedules"]');
-  if (scheduleTab) scheduleTab.disabled = optimizedSchedules.length === 0;
   if (!btnDownloadSchedule) return;
   btnDownloadSchedule.disabled = optimizedSchedules.length === 0;
 }
@@ -642,13 +640,29 @@ async function loadSavedCourses() {
 loadSavedCourses();
 
 
-// Small screens use two workspace views; each keeps its own scroll position.
+function updateWorkspaceBadges() {
+  const courseBadge = document.getElementById('tab-course-badge');
+  const scheduleBadge = document.getElementById('tab-schedule-badge');
+  if (courseBadge) {
+    const count = (typeof selectedCourses !== 'undefined' && selectedCourses) ? selectedCourses.size : (typeof courses !== 'undefined' ? courses.length : 0);
+    courseBadge.textContent = count;
+  }
+  if (scheduleBadge) {
+    const total = (typeof catalogTotal !== 'undefined' && catalogTotal) ? catalogTotal : (typeof optimizedSchedules !== 'undefined' ? optimizedSchedules.length : 0);
+    scheduleBadge.textContent = total;
+  }
+}
+window.updateWorkspaceBadges = updateWorkspaceBadges;
+
 function setWorkspaceView(view) {
-  if (view === 'schedules' && !optimizedSchedules.length) return;
   document.body.dataset.workspace = view;
   document.querySelectorAll('[data-workspace]').forEach(button => {
-    if (button.tagName === 'BUTTON') button.setAttribute('aria-pressed', String(button.dataset.workspace === view));
+    if (button.tagName === 'BUTTON') {
+      const isSelected = button.dataset.workspace === view;
+      button.setAttribute('aria-pressed', String(isSelected));
+    }
   });
+  updateWorkspaceBadges();
 }
 document.querySelectorAll('button[data-workspace]').forEach(button => {
   button.addEventListener('click', () => setWorkspaceView(button.dataset.workspace));
