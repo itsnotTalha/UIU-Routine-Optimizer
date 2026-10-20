@@ -5,15 +5,19 @@ let optimizedSchedules = [];
 let selectedScheduleIndex = 0;
 
 // Configs for Calendar Rendering
-const START_MINS = 8 * 60 + 30; // 08:30
-const END_MINS = 20 * 60 + 30;  // 20:30
-const TOTAL_MINS = END_MINS - START_MINS; // 720 mins (12 hours)
+let START_MINS = 8 * 60 + 30; // 08:30
+let END_MINS = 20 * 60 + 30;  // 20:30
+let TOTAL_MINS = END_MINS - START_MINS; // 720 mins (12 hours)
 
-// DOM elements
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
+}
+
+// DOM Elements
 const courseListContainer = document.getElementById('course-list-container');
 const btnAddCourse = document.getElementById('btn-add-course');
 const btnOptimize = document.getElementById('btn-optimize');
-const btnDemo = document.getElementById('btn-demo');
+const btnResetAll = document.getElementById('btn-reset-all');
 const btnDownloadSchedule = document.getElementById('btn-download-schedule');
 const emptyState = document.getElementById('empty-state');
 const errorState = document.getElementById('error-state');
@@ -23,6 +27,40 @@ const combinationsCount = document.getElementById('combinations-count');
 const optionSelectorContainer = document.getElementById('option-selector-container');
 const calendarTimeHeader = document.getElementById('calendar-time-header');
 const courseCountBadge = document.getElementById('course-count');
+
+// Theme Switcher Elements
+const btnThemeToggle = document.getElementById('btn-theme-toggle');
+const themeToggleIcon = document.getElementById('theme-toggle-icon');
+
+function updateThemeIcon(theme) {
+  if (!themeToggleIcon) return;
+  if (theme === 'light') {
+    themeToggleIcon.className = 'fa-solid fa-moon text-orange-600 text-sm';
+    btnThemeToggle.setAttribute('title', 'Switch to Dark Mode');
+  } else {
+    themeToggleIcon.className = 'fa-solid fa-sun text-amber-400 text-sm';
+    btnThemeToggle.setAttribute('title', 'Switch to Light Mode');
+  }
+}
+
+if (btnThemeToggle) {
+  btnThemeToggle.addEventListener('click', () => {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('uiu-theme', newTheme);
+    updateThemeIcon(newTheme);
+  });
+}
+
+// Initialize theme icon on load
+updateThemeIcon(document.documentElement.getAttribute('data-theme') || 'dark');
+
+// Tab Mode Elements
+const tabPdf = document.getElementById('tab-pdf');
+const tabManual = document.getElementById('tab-manual');
+const pdfContainer = document.getElementById('pdf-container');
+const manualPanel = document.getElementById('manual-panel');
 
 // Details Modal DOM Elements
 const detailsModal = document.getElementById('details-modal');
@@ -34,7 +72,35 @@ const modalFacultyName = document.getElementById('modal-faculty-name');
 const modalRoomName = document.getElementById('modal-room-name');
 const modalScheduleSlots = document.getElementById('modal-schedule-slots');
 
+// Mode Tab Switching
+function switchMode(mode) {
+  if (mode === 'pdf') {
+    if (tabPdf) {
+      tabPdf.className = 'flex-1 py-2 px-3 rounded-lg text-fluid-xs font-bold transition-all flex items-center justify-center gap-2 bg-orange-600 text-white shadow-sm';
+    }
+    if (tabManual) {
+      tabManual.className = 'flex-1 py-2 px-3 rounded-lg text-fluid-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all flex items-center justify-center gap-2';
+    }
+    if (pdfContainer) pdfContainer.classList.remove('hidden');
+    if (manualPanel) manualPanel.classList.add('hidden');
+  } else {
+    if (tabManual) {
+      tabManual.className = 'flex-1 py-2 px-3 rounded-lg text-fluid-xs font-bold transition-all flex items-center justify-center gap-2 bg-orange-600 text-white shadow-sm';
+    }
+    if (tabPdf) {
+      tabPdf.className = 'flex-1 py-2 px-3 rounded-lg text-fluid-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all flex items-center justify-center gap-2';
+    }
+    if (pdfContainer) pdfContainer.classList.add('hidden');
+    if (manualPanel) manualPanel.classList.remove('hidden');
+  }
+}
+
+if (tabPdf) tabPdf.addEventListener('click', () => switchMode('pdf'));
+if (tabManual) tabManual.addEventListener('click', () => switchMode('manual'));
+
 function updateDownloadButtonState() {
+  const scheduleTab = document.querySelector('button[data-workspace="schedules"]');
+  if (scheduleTab) scheduleTab.disabled = optimizedSchedules.length === 0;
   if (!btnDownloadSchedule) return;
   btnDownloadSchedule.disabled = optimizedSchedules.length === 0;
 }
@@ -54,11 +120,13 @@ async function downloadCalendarGrid() {
 
   const originalLabel = btnDownloadSchedule.innerHTML;
   btnDownloadSchedule.disabled = true;
-  btnDownloadSchedule.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Exporting...';
+  btnDownloadSchedule.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Exporting...';
+
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
 
   try {
     const canvas = await html2canvas(exportTarget, {
-      backgroundColor: '#080B11',
+      backgroundColor: isLight ? '#FFFFFF' : '#111111',
       scale: 2,
       useCORS: true,
       logging: false,
@@ -72,22 +140,39 @@ async function downloadCalendarGrid() {
 
         clonedTarget.style.width = `${exportTarget.scrollWidth}px`;
         clonedTarget.style.maxWidth = 'none';
+        // Expand scroll ancestors only in the export clone so all seven days
+        // remain in the PNG, even when the on-screen timetable scrolls.
+        for (let parent = clonedTarget.parentElement; parent; parent = parent.parentElement) {
+          parent.style.overflow = 'visible';
+          parent.style.height = 'auto';
+          parent.style.maxHeight = 'none';
+        }
+        clonedTarget.style.height = 'auto';
+        clonedTarget.style.minHeight = '0';
+        clonedDocument.getElementById('calendar-grid-body').style.flex = 'none';
+        clonedDocument.querySelectorAll('.day-row').forEach(node => {
+          node.style.flex = 'none';
+          node.style.height = '100px';
+        });
         clonedTarget.style.overflow = 'visible';
         clonedTarget.style.webkitFontSmoothing = 'antialiased';
         clonedTarget.style.textRendering = 'geometricPrecision';
+        clonedTarget.style.backgroundColor = isLight ? '#FFFFFF' : '#111111';
 
         clonedDocument.querySelectorAll('.calendar-header-row').forEach((node) => {
           node.style.fontSize = '0.95rem';
-          node.style.padding = '16px 0';
+          node.style.padding = '14px 0';
+          node.style.color = isLight ? '#404040' : '#A3A3A3';
         });
 
         clonedDocument.querySelectorAll('.day-row-label').forEach((node) => {
           node.style.fontSize = '0.92rem';
-          node.style.minHeight = '110px';
+          node.style.minHeight = '100px';
+          node.style.color = isLight ? '#171717' : '#FAFAFA';
         });
 
         clonedDocument.querySelectorAll('.day-row-timeline').forEach((node) => {
-          node.style.height = '110px';
+          node.style.height = '100px';
         });
 
         clonedDocument.querySelectorAll('.calendar-time-ticks span, .class-block-horizontal').forEach((node) => {
@@ -97,29 +182,30 @@ async function downloadCalendarGrid() {
         });
 
         clonedDocument.querySelectorAll('.calendar-time-ticks span').forEach((node) => {
-          node.style.fontSize = '0.92rem';
+          node.style.fontSize = '0.9rem';
           node.style.fontWeight = '600';
+          node.style.color = isLight ? '#737373' : '#A3A3A3';
         });
 
         clonedDocument.querySelectorAll('.class-block-horizontal').forEach((node) => {
           node.style.overflow = 'visible';
-          node.style.overflowY = 'visible';
-          node.style.overflowX = 'visible';
-          node.style.fontSize = '10px';
+          node.style.fontSize = '11px';
           node.style.lineHeight = '1.4';
           node.style.alignItems = 'flex-start';
           node.style.justifyContent = 'flex-start';
           node.style.padding = '8px 10px';
-          node.style.minHeight = '72px';
+          node.style.minHeight = '70px';
           node.style.height = 'auto';
           node.style.boxSizing = 'border-box';
-          node.style.borderRadius = '10px';
+          node.style.borderRadius = '9px';
         });
 
-        clonedDocument.querySelectorAll('.class-block-horizontal > div').forEach((node) => {
-          node.style.lineHeight = '1.4';
-          node.style.whiteSpace = 'normal';
+        clonedDocument.querySelectorAll('.class-block-horizontal > div').forEach(node => {
           node.style.overflow = 'visible';
+          node.style.whiteSpace = 'normal';
+          node.style.overflowWrap = 'anywhere';
+          node.style.lineHeight = '1.6';
+          node.style.flex = 'none';
         });
 
         clonedDocument.querySelectorAll('.glass, .calendar-container').forEach((node) => {
@@ -141,9 +227,8 @@ async function downloadCalendarGrid() {
 
     const downloadUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    const optionNumber = selectedScheduleIndex + 1;
+    const optionNumber = selectedScheduleIndex + 1 + (window.scheduleOffset || 0);
     const timestamp = new Date().toISOString().slice(0, 10);
-
     link.href = downloadUrl;
     link.download = `uiu-weekly-schedule-option-${optionNumber}-${timestamp}.png`;
     document.body.appendChild(link);
@@ -151,8 +236,7 @@ async function downloadCalendarGrid() {
     link.remove();
     setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
   } catch (err) {
-    errorMessage.textContent = err.message || 'Failed to download the weekly calendar grid.';
-    errorState.classList.remove('hidden');
+    showError(err.message || 'Failed to download the weekly timetable image.');
   } finally {
     btnDownloadSchedule.innerHTML = originalLabel;
     updateDownloadButtonState();
@@ -163,7 +247,6 @@ async function downloadCalendarGrid() {
 function initCalendarHours() {
   calendarTimeHeader.innerHTML = '';
   
-  // Clear any existing grid lines in day rows
   const dayTimelines = document.querySelectorAll('.day-row-timeline');
   dayTimelines.forEach(timeline => {
     timeline.innerHTML = '';
@@ -174,12 +257,10 @@ function initCalendarHours() {
     const minute = mins % 60;
     const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
     
-    // Create header label
     const label = document.createElement('span');
     label.textContent = timeStr;
     calendarTimeHeader.appendChild(label);
 
-    // Create vertical line overlays in each day timeline
     const leftPercent = ((mins - START_MINS) / TOTAL_MINS) * 100;
     
     dayTimelines.forEach(timeline => {
@@ -191,7 +272,7 @@ function initCalendarHours() {
   }
 }
 
-// Debounce helper to prevent flooding save requests
+// Debounce helper
 function debounce(func, wait) {
   let timeout;
   return function (...args) {
@@ -223,35 +304,35 @@ function addCourseCard(name = '', text = '', triggerSave = true) {
   
   const card = document.createElement('div');
   card.id = `course-card-${courseId}`;
-  card.className = 'glass rounded-xl p-4 flex flex-col gap-3 border border-brandBorder bg-brandCard/40 transition-all duration-300 relative group hover:border-indigo-500/40';
+  card.className = 'rounded-xl p-3.5 flex flex-col gap-3 border border-brandBorder bg-[var(--bg-subtle)] transition-all duration-200 relative group hover:border-orange-500/50 shadow-sm';
   
   card.innerHTML = `
     <div class="flex justify-between items-center">
-      <span class="text-xs font-bold text-indigo-400 uppercase tracking-wide">Course Info</span>
-      <button class="btn-delete-course text-gray-500 hover:text-red-400 text-xs transition-colors p-1" title="Delete Course">
+      <span class="text-fluid-2xs font-bold text-orange-500 uppercase tracking-wider flex items-center gap-1.5">
+        <i class="fa-solid fa-book-bookmark"></i> Course Info
+      </span>
+      <button class="btn-delete-course text-[var(--text-muted)] hover:text-red-500 text-sm transition-colors p-1" title="Delete Course">
         <i class="fa-solid fa-trash-can"></i>
       </button>
     </div>
     <div class="flex flex-col gap-1">
-      <label class="text-[10px] uppercase font-bold text-gray-400">Course Name / PK</label>
-      <input type="text" class="course-name-input px-3 py-2 text-xs rounded-lg glass-input w-full" placeholder="e.g. CSE 303" value="${name}">
+      <label class="text-fluid-2xs uppercase font-bold text-[var(--text-muted)]">Course Name / Code</label>
+      <input type="text" class="course-name-input px-3 py-2 text-fluid-xs rounded-lg glass-input w-full font-semibold" placeholder="e.g. CSE 303" value="${escapeHtml(name)}">
     </div>
     <div class="flex flex-col gap-1">
       <div class="flex justify-between items-center">
-        <label class="text-[10px] uppercase font-bold text-gray-400">Routine Sections Text</label>
-        <span class="text-[9px] text-gray-500 font-mono-custom">Day HH:MM-HH:MM</span>
+        <label class="text-fluid-2xs uppercase font-bold text-[var(--text-muted)]">Routine Sections Text</label>
+        <span class="text-fluid-2xs text-[var(--text-muted)] font-mono-custom font-semibold">Day HH:MM-HH:MM</span>
       </div>
-      <textarea rows="4" class="course-text-input px-3 py-2 text-xs rounded-lg glass-input w-full font-mono-custom resize-y" placeholder="Paste sections schedule here...">${text}</textarea>
+      <textarea rows="3" class="course-text-input px-3 py-2 text-fluid-xs rounded-lg glass-input w-full font-mono-custom resize-y" placeholder="Paste sections schedule here...">${escapeHtml(text)}</textarea>
     </div>
   `;
 
-  // Attach deletion handler
   const btnDelete = card.querySelector('.btn-delete-course');
   btnDelete.addEventListener('click', () => {
     removeCourseCard(courseId);
   });
 
-  // Attach change listeners to update states in memory and trigger auto-save
   const nameInput = card.querySelector('.course-name-input');
   nameInput.addEventListener('input', (e) => {
     const idx = courses.findIndex(c => c.id === courseId);
@@ -272,8 +353,6 @@ function addCourseCard(name = '', text = '', triggerSave = true) {
 
   courseListContainer.appendChild(card);
   updateCourseCount();
-  
-  // Auto scroll list container
   courseListContainer.scrollTop = courseListContainer.scrollHeight;
 
   if (triggerSave) {
@@ -291,82 +370,73 @@ function removeCourseCard(id) {
       card.remove();
       updateCourseCount();
       debouncedSave();
-    }, 200);
+    }, 150);
   }
 }
 
 // Update badges
 function updateCourseCount() {
-  courseCountBadge.textContent = `${courses.length} ${courses.length === 1 ? 'Course' : 'Courses'}`;
-}
-
-// Load Demo Data
-function loadDemoData() {
-  // Clear existing
-  courseListContainer.innerHTML = '';
-  courses = [];
-  
-  const demoData = [
-    {
-      name: "CSE 303 (Database)",
-      text: "A\nDr. Mohammad Kaykobad\nMonday 09:50-11:10\nWednesday 09:50-11:10\n\nB\nDr. Mohammad Kaykobad\nMonday 11:10-12:30\nWednesday 11:10-12:30"
-    },
-    {
-      name: "CSE 305 (Algorithms)",
-      text: "K\nMuhammad Sibgatullah Zunnun\nSunday 12:20-13:40\nWednesday 12:20-13:40\n\nL\nMuhammad Sibgatullah Zunnun\nSunday 13:50-15:10\nWednesday 13:50-15:10"
-    },
-    {
-      name: "CSE 307 (Soft. Eng.)",
-      text: "T1\nJohn Smith\nThursday 11:00-13:30\n\nT2\nJohn Smith\nTuesday 09:50-11:10\nThursday 09:50-11:10"
-    }
-  ];
-
-  demoData.forEach(d => addCourseCard(d.name, d.text, false));
-  debouncedSave();
+  if (courseCountBadge) {
+    courseCountBadge.textContent = `${courses.length} ${courses.length === 1 ? 'Course' : 'Courses'}`;
+  }
 }
 
 // Render schedule on the calendar
 function renderCalendarSchedule(schedule) {
-  // Reset columns
+  const slots = schedule.flatMap(item => item.section.slots);
+  START_MINS = Math.floor(Math.min(510, ...slots.map(s => s.start_mins)) / 60) * 60;
+  END_MINS = Math.ceil(Math.max(1230, ...slots.map(s => s.end_mins)) / 60) * 60;
+  TOTAL_MINS = END_MINS - START_MINS;
   initCalendarHours();
 
-  // Color mappings based on course list indices to keep colors persistent
   const courseNames = [...new Set(schedule.map(c => c.course_name))];
   
+  // Highlight active day rows
+  const activeDays = new Set(slots.map(s => s.day));
+  ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].forEach(day => {
+    const row = document.getElementById(`row-${day}`);
+    if (!row) return;
+    const parentRow = row.closest('.day-row');
+    if (parentRow) {
+      if (activeDays.has(day)) {
+        parentRow.classList.remove('opacity-40');
+      } else {
+        parentRow.classList.add('opacity-40');
+      }
+    }
+  });
+
   schedule.forEach(item => {
     const courseName = item.course_name;
     const section = item.section;
-    const colorIndex = courseNames.indexOf(courseName) % 8; // We have 8 colors defined in CSS
+    const colorIndex = courseNames.indexOf(courseName) % 8;
 
     section.slots.forEach(slot => {
       const day = slot.day;
       const row = document.getElementById(`row-${day}`);
       if (!row) return;
 
-      // Check boundary limits
-      if (slot.start_mins < START_MINS || slot.end_mins > END_MINS) {
-        console.warn(`Class ${courseName} Slot lies outside visible time boundaries: ${slot.start_time}-${slot.end_time}`);
-      }
-
       const leftPercent = ((slot.start_mins - START_MINS) / TOTAL_MINS) * 100;
       const widthPercent = ((slot.end_mins - slot.start_mins) / TOTAL_MINS) * 100;
 
       const block = document.createElement('div');
+      block.setAttribute('role', 'button');
+      block.tabIndex = 0;
+      block.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); block.click(); }
+      });
       block.className = `class-block-horizontal course-color-${colorIndex}`;
       block.style.left = `${leftPercent}%`;
       block.style.width = `${widthPercent}%`;
       
       block.innerHTML = `
-        <div class="font-bold truncate text-[11px] leading-tight">${courseName}</div>
-        <div class="text-[9px] opacity-90 truncate font-mono-custom mt-0.5">Sec ${section.name} | ${section.faculty}</div>
-        ${section.room ? `<div class="text-[8px] opacity-80 truncate mt-0.5"><i class="fa-solid fa-location-dot"></i> ${section.room}</div>` : ''}
-        <div class="text-[8px] opacity-80 mt-0.5"><i class="fa-regular fa-clock"></i> ${slot.start_time}-${slot.end_time}</div>
+        <div class="calendar-course">${escapeHtml(courseName.split(' — ')[0])}</div>
+        <div class="calendar-section">Sec ${escapeHtml(section.name)} · ${escapeHtml(section.faculty)}</div>
+        <div class="calendar-time">${slot.start_time}–${slot.end_time}</div>
       `;
 
-      // Simple tooltip hover
       block.title = `${courseName} (Sec ${section.name})\nFaculty: ${section.faculty}\nTime: ${day} ${slot.start_time}-${slot.end_time}`;
 
-      // Open details modal on click
       block.addEventListener('click', () => {
         showDetailsModal(courseName, section);
       });
@@ -388,8 +458,8 @@ function showDetailsModal(courseName, section) {
   modalScheduleSlots.innerHTML = '';
   section.slots.forEach(slot => {
     const slotDiv = document.createElement('div');
-    slotDiv.className = 'flex items-center gap-2 mt-1.5 text-xs text-gray-300';
-    slotDiv.innerHTML = `<i class="fa-regular fa-clock text-indigo-400"></i> <strong>${slot.day}</strong> ${slot.start_time} - ${slot.end_time}`;
+    slotDiv.className = 'flex items-center gap-2 mt-1 text-fluid-xs text-[var(--text-secondary)] font-medium';
+    slotDiv.innerHTML = `<i class="fa-regular fa-clock text-orange-500"></i> <strong class="text-[var(--text-primary)] font-bold">${escapeHtml(slot.day)}</strong> ${escapeHtml(slot.start_time)} - ${escapeHtml(slot.end_time)} ${slot.room ? ` &bull; Room ${escapeHtml(slot.room)}` : ''}`;
     modalScheduleSlots.appendChild(slotDiv);
   });
   
@@ -406,16 +476,21 @@ function renderOptionSelectors() {
   
   optimizedSchedules.forEach((sch, idx) => {
     const pill = document.createElement('button');
-    pill.className = `px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
-      idx === selectedScheduleIndex 
-        ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/10' 
-        : 'bg-brandCard text-gray-400 border-brandBorder hover:border-gray-600 hover:text-gray-200'
+    const isSelected = idx === selectedScheduleIndex;
+    pill.className = `px-3 py-1.5 text-fluid-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 whitespace-nowrap shadow-sm ${
+      isSelected 
+        ? 'bg-orange-600 text-white border-orange-500 shadow-orange-600/30 ring-2 ring-orange-500/30' 
+        : 'bg-[var(--pill-bg)] text-[var(--text-secondary)] border-brandBorder hover:border-neutral-500 hover:text-[var(--text-primary)]'
     }`;
-    pill.textContent = `Option ${idx + 1}`;
+    
+    const isBest = idx === 0 && (window.scheduleOffset || 0) === 0;
+    pill.innerHTML = `Option ${idx + 1 + (window.scheduleOffset || 0)}${isBest ? ' <span class="text-amber-400 text-fluid-xs">★</span>' : ''}`;
+    
     pill.addEventListener('click', () => {
       selectedScheduleIndex = idx;
       renderOptionSelectors();
       renderCalendarSchedule(optimizedSchedules[idx]);
+      if (window.updateScheduleMetrics) window.updateScheduleMetrics(idx);
     });
     optionSelectorContainer.appendChild(pill);
   });
@@ -423,6 +498,7 @@ function renderOptionSelectors() {
 
 // Show errors
 function showError(msg) {
+  setWorkspaceView('courses');
   errorMessage.textContent = msg;
   errorState.classList.remove('hidden');
   resultsView.classList.add('hidden');
@@ -430,17 +506,21 @@ function showError(msg) {
   updateDownloadButtonState();
 }
 
-// Optimize Button Actions
+// Optimize Routine Action (Manual)
 async function optimizeRoutine() {
-  // Clear states
+  if (window.cancelCatalogSearch) window.cancelCatalogSearch();
+  window.scheduleOffset = 0;
+  const pagination = document.getElementById('schedule-pagination');
+  if (pagination) pagination.hidden = true;
+  optimizedSchedules = [];
+  updateDownloadButtonState();
   errorState.classList.add('hidden');
   
   if (courses.length === 0) {
-    showError("Please add at least one course card before running the optimization.");
+    showError("Please add at least one course before running the optimization.");
     return;
   }
 
-  // Build Payload & Validate inputs
   const payloadCourses = [];
   for (const c of courses) {
     const name = c.name.trim();
@@ -461,7 +541,6 @@ async function optimizeRoutine() {
     });
   }
 
-  // Set Button loading state
   btnOptimize.disabled = true;
   btnOptimize.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Optimizing...`;
 
@@ -471,7 +550,7 @@ async function optimizeRoutine() {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ courses: payloadCourses })
+      body: JSON.stringify({ courses: payloadCourses, campus_days: getCampusDays() })
     });
 
     if (!response.ok) {
@@ -488,27 +567,39 @@ async function optimizeRoutine() {
       return;
     }
 
-    // Success State
     emptyState.classList.add('hidden');
     resultsView.classList.remove('hidden');
-    combinationsCount.textContent = `Found ${optimizedSchedules.length} conflict-free weekly schedule ${optimizedSchedules.length === 1 ? 'combination' : 'combinations'}.`;
+    combinationsCount.textContent = `Found ${optimizedSchedules.length} conflict-free ${optimizedSchedules.length === 1 ? 'combination' : 'combinations'}`;
     
+    const metricsEl = document.getElementById('schedule-metrics');
+    if (metricsEl) {
+      metricsEl.innerHTML = `<i class="fa-solid fa-calendar-check text-orange-500"></i> ${courses.length} Courses`;
+    }
+
     renderOptionSelectors();
     renderCalendarSchedule(optimizedSchedules[0]);
     updateDownloadButtonState();
+    setWorkspaceView('schedules');
 
   } catch (err) {
     showError(err.message);
   } finally {
     btnOptimize.disabled = false;
-    btnOptimize.innerHTML = `<i class="fa-solid fa-compass-drafting"></i> Optimize Routine`;
+    btnOptimize.innerHTML = `<i class="fa-solid fa-bolt"></i> Optimize Routine`;
   }
+}
+
+// Reset All
+if (btnResetAll) {
+  btnResetAll.addEventListener('click', () => {
+    localStorage.removeItem('uiu-pdf-selection');
+    window.location.reload();
+  });
 }
 
 // Event Listeners
 btnAddCourse.addEventListener('click', () => addCourseCard());
 btnOptimize.addEventListener('click', optimizeRoutine);
-btnDemo.addEventListener('click', loadDemoData);
 btnDownloadSchedule.addEventListener('click', downloadCalendarGrid);
 
 // Modal Event Listeners
@@ -520,7 +611,7 @@ detailsModal.addEventListener('click', (e) => {
   }
 });
 
-// Initialize layout hours and load saved courses from server
+// Initialize layout hours and load saved courses
 initCalendarHours();
 updateDownloadButtonState();
 
@@ -530,7 +621,6 @@ async function loadSavedCourses() {
     if (response.ok) {
       const saved = await response.json();
       if (saved && saved.length > 0) {
-        // Clear default elements
         courseListContainer.innerHTML = '';
         courses = [];
         let maxId = 0;
@@ -545,8 +635,32 @@ async function loadSavedCourses() {
   } catch (err) {
     console.error("Failed to load saved courses from server:", err);
   }
-  // If no saved courses or fetch failed, initialize with one empty course card
+  // Initialize with one clean course card if empty
   addCourseCard('', '', false);
 }
 
 loadSavedCourses();
+
+
+// Small screens use two workspace views; each keeps its own scroll position.
+function setWorkspaceView(view) {
+  if (view === 'schedules' && !optimizedSchedules.length) return;
+  document.body.dataset.workspace = view;
+  document.querySelectorAll('[data-workspace]').forEach(button => {
+    if (button.tagName === 'BUTTON') button.setAttribute('aria-pressed', String(button.dataset.workspace === view));
+  });
+}
+document.querySelectorAll('button[data-workspace]').forEach(button => {
+  button.addEventListener('click', () => setWorkspaceView(button.dataset.workspace));
+});
+setWorkspaceView('courses');
+
+function getCampusDays() {
+  return Number(document.getElementById('campus-days').value) || null;
+}
+document.getElementById('campus-days').addEventListener('change', () => {
+  invalidateCatalogResults();
+  if (catalog) persistCatalog();
+});
+// Keep errors with the selection controls while the timetable is hidden.
+document.getElementById('input-workspace').insertBefore(errorState, document.getElementById('week-preferences'));
