@@ -11,12 +11,18 @@ from backend.pdf_import import import_pdf
 
 router = APIRouter(prefix='/api')
 CATALOG_DIR = Path(__file__).parent / 'catalogs'
+TMP_CATALOG_DIR = Path('/tmp/catalogs')
 MAX_UPLOAD = 20 * 1024 * 1024
 
 
 def load_catalog(catalog_id):
     if not re.fullmatch(r'[a-f0-9]{32}', catalog_id):
         raise HTTPException(404, 'Catalog not found. Upload the PDF again.')
+    # Check /tmp first (for newly uploaded files in serverless like Vercel)
+    tmp_path = TMP_CATALOG_DIR / f'{catalog_id}.json'
+    if tmp_path.exists():
+        return json.loads(tmp_path.read_text(encoding='utf-8'))
+    # Check bundled catalogs dir
     path = CATALOG_DIR / f'{catalog_id}.json'
     if not path.exists():
         raise HTTPException(404, 'Catalog not found. Upload the PDF again.')
@@ -35,9 +41,18 @@ def upload_catalog(file: UploadFile):
             raise HTTPException(400, str(exc)) from exc
         catalog['id'] = uuid4().hex
         catalog['filename'] = Path(file.filename or 'routine.pdf').name
-        CATALOG_DIR.mkdir(parents=True, exist_ok=True)
-        path = CATALOG_DIR / f"{catalog['id']}.json"
-        path.write_text(json.dumps(catalog, ensure_ascii=False), encoding='utf-8')
+        
+        # Write to CATALOG_DIR, fallback to /tmp/catalogs on read-only environments (e.g. Vercel)
+        data = json.dumps(catalog, ensure_ascii=False)
+        try:
+            CATALOG_DIR.mkdir(parents=True, exist_ok=True)
+            path = CATALOG_DIR / f"{catalog['id']}.json"
+            path.write_text(data, encoding='utf-8')
+        except OSError:
+            TMP_CATALOG_DIR.mkdir(parents=True, exist_ok=True)
+            path = TMP_CATALOG_DIR / f"{catalog['id']}.json"
+            path.write_text(data, encoding='utf-8')
+            
         return catalog
     finally:
         file.file.close()
