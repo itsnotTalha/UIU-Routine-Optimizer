@@ -95,132 +95,157 @@
     </div>
   </header>
 
-  <!-- Main Content Layout -->
-  <nav class="workspace-switch" aria-label="Workspace view">
-    <button type="button" data-workspace="courses" aria-pressed="true">Courses &amp; faculty</button>
-    <button type="button" data-workspace="schedules" aria-pressed="false">Schedules</button>
-  </nav>
-  <main id="workspace" class="flex-1 max-w-7xl mx-auto w-full p-3 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5">
-    
-    <!-- Left Input & Control Station (col-span-5) -->
-    <aside id="input-workspace" class="lg:col-span-5 flex flex-col gap-4">
-
-      <!-- Mode Switcher Tabs (PDF vs Manual) -->
-      <div class="flex items-center p-1 rounded-xl bg-[var(--bg-subtle)] border border-brandBorder shadow-sm">
-        <button id="tab-pdf" class="flex-1 py-2 px-3 rounded-lg text-fluid-xs font-bold transition-all flex items-center justify-center gap-2 bg-orange-600 text-white shadow-sm">
-          <i class="fa-solid fa-file-pdf"></i> Routine PDF
+  <!-- Contextual Workspace Toolbar (Option 1 Unified Toolbar) -->
+  <section class="workspace-nav-bar px-4 lg:px-8 py-3 border-b border-brandBorder bg-[var(--bg-card)] sticky top-[57px] z-40 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-3 relative">
+      
+      <!-- Left: Primary Navigation Tabs (Courses & Faculty vs Schedules) -->
+      <nav class="flex items-center gap-2.5" aria-label="Workspace view">
+        <button type="button" data-workspace="courses" aria-pressed="true" class="workspace-tab">
+          <i class="fa-solid fa-layer-group text-base"></i>
+          <span>Courses &amp; Faculty</span>
+          <span id="tab-course-badge" class="tab-badge">0</span>
         </button>
-        <button id="tab-manual" class="flex-1 py-2 px-3 rounded-lg text-fluid-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all flex items-center justify-center gap-2">
-          <i class="fa-solid fa-keyboard"></i> Manual Entry
+        <button type="button" data-workspace="schedules" aria-pressed="false" class="workspace-tab">
+          <i class="fa-regular fa-calendar-check text-base"></i>
+          <span>Schedules</span>
+          <span id="tab-schedule-badge" class="tab-badge hidden">0</span>
         </button>
-      </div>
+      </nav>
 
-      <div id="week-preferences" class="glass rounded-xl">
-        <label for="campus-days">Campus days per week</label>
-        <select id="campus-days" class="glass-input rounded-lg">
-          <option value="">Any number</option>
-          <option value="3">Exactly 3 days</option>
-          <option value="4">Exactly 4 days</option>
-          <option value="5">Exactly 5 days</option>
-        </select>
-        <span>Only show routines matching this number of class days.</span>
-      </div>
-      <!-- PDF Mode Container -->
-      <div id="pdf-container" class="flex flex-col gap-4">
-        
-        <!-- Step 1: Upload Card & Dropzone -->
-        <div id="pdf-drop-card" class="glass rounded-xl p-4 lg:p-5 flex flex-col gap-3.5">
+      <!-- Right: Active Dataset Pill Dropdown Trigger -->
+      <div class="relative">
+        <button id="btn-routine-dropdown" type="button" aria-expanded="false" aria-controls="routine-dropdown-menu">
+          <i class="fa-solid fa-database text-emerald-400 text-sm"></i>
+          <span id="toolbar-routine-label">Fall 2026</span>
+          <i id="toolbar-dropdown-chevron" class="fa-solid fa-chevron-down text-xs text-[var(--text-muted)] transition-transform duration-200"></i>
+        </button>
+
+        <!-- Active Routine Source Dropdown Card (Interactive Source Menu) -->
+        <div id="routine-dropdown-menu" class="hidden absolute right-0 top-full mt-2 w-[340px] sm:w-[400px] rounded-2xl bg-[var(--bg-card)] border border-brandBorder p-4 shadow-2xl backdrop-blur-xl z-50 flex flex-col gap-3.5">
+          
           <div class="flex items-center justify-between">
-            <h2 class="text-fluid-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
-              <span class="h-5 w-5 rounded-full bg-orange-500/20 text-orange-400 text-fluid-2xs flex items-center justify-center font-bold">1</span>
-              Routine Catalog
-            </h2>
-            <span id="routine-source-badge" class="text-fluid-2xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Pre-Loaded</span>
+            <span class="text-fluid-xs font-bold text-[var(--text-primary)]">Active routine source</span>
+            <span id="pdf-origin-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/60">Official</span>
           </div>
 
-          <!-- Animated Uploading & Loading Progress State (Shown during PDF parsing or pre-loading) -->
-          <div id="pdf-progress-overlay" class="hidden rounded-xl bg-[var(--bg-subtle)] border border-orange-500/30 p-5 flex flex-col items-center justify-center gap-3 transition-all">
-            <div class="relative flex items-center justify-center">
-              <div class="upload-ring"></div>
-              <i class="fa-solid fa-file-pdf text-orange-500 text-lg absolute"></i>
-            </div>
-            <div class="w-full text-center">
-              <p id="progress-status-title" class="text-fluid-xs font-bold text-[var(--text-primary)]">Loading Routine...</p>
-              <p id="progress-status-desc" class="text-fluid-2xs text-[var(--text-muted)] mt-0.5">Preparing courses and class slots</p>
-            </div>
-            <div class="w-full max-w-xs progress-bar-container">
-              <div id="progress-bar" class="progress-bar-fill" style="width: 35%;"></div>
-            </div>
-          </div>
+          <p id="pdf-file-name" class="text-fluid-2xs font-medium text-[var(--text-secondary)] truncate">
+            Class Routine with Faculty assign Fall 2026.pdf
+          </p>
 
-          <!-- Dropzone (Hidden when routine is active or loading) -->
-          <div id="pdf-dropzone" class="dropzone-box rounded-xl p-6 flex flex-col items-center justify-center text-center gap-2.5 cursor-pointer group">
-            <input id="routine-pdf" type="file" accept="application/pdf,.pdf" class="hidden">
-            <div class="h-12 w-12 rounded-full bg-orange-500/15 group-hover:bg-orange-500/25 flex items-center justify-center text-orange-500 transition-transform group-hover:scale-110">
-              <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+          <!-- Stats Grid -->
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="rounded-xl bg-[var(--bg-primary)] border border-brandBorder p-3 flex flex-col">
+              <span id="stat-courses-count" class="text-xl font-extrabold text-[var(--text-primary)]">107</span>
+              <span class="text-fluid-2xs font-medium text-[var(--text-muted)]">Courses</span>
             </div>
-            <div>
-              <p class="text-fluid-sm font-bold text-[var(--text-primary)]">
-                <span class="text-orange-500 underline decoration-orange-500/40 underline-offset-2">Click to upload</span> or drag &amp; drop
-              </p>
-              <p class="text-fluid-xs text-[var(--text-muted)] mt-0.5">Custom UIU routine PDF (up to 20 MB)</p>
+            <div class="rounded-xl bg-[var(--bg-primary)] border border-brandBorder p-3 flex flex-col">
+              <span id="stat-sections-count" class="text-xl font-extrabold text-[var(--text-primary)]">791</span>
+              <span class="text-fluid-2xs font-medium text-[var(--text-muted)]">Sections</span>
             </div>
           </div>
 
-          <!-- Active File Banner -->
-          <div id="pdf-active-card" class="hidden rounded-xl bg-[var(--bg-subtle)] border border-brandBorder p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
-            <div class="flex items-center gap-3 min-w-0">
-              <div class="h-9 w-9 rounded-lg bg-emerald-500/20 text-emerald-500 flex items-center justify-center flex-shrink-0">
-                <i class="fa-solid fa-file-circle-check text-base"></i>
+          <!-- Animated Progress Overlay (during PDF import) -->
+          <div id="pdf-progress-overlay" class="hidden rounded-xl bg-[var(--bg-primary)] border border-orange-500/30 p-2.5 flex items-center gap-3">
+            <div class="upload-ring !h-6 !w-6 !border-2 flex-shrink-0"></div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between text-fluid-2xs mb-1">
+                <span id="progress-status-title" class="font-bold text-[var(--text-primary)]">Parsing Routine...</span>
+                <span id="progress-status-desc" class="text-[var(--text-muted)] truncate max-w-[120px]">Extracting</span>
               </div>
-              <div class="min-w-0">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <p id="pdf-file-name" class="text-fluid-xs font-bold text-[var(--text-primary)] truncate">routine.pdf</p>
-                  <span id="pdf-origin-badge" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Official</span>
-                </div>
-                <p id="pdf-file-stats" class="text-fluid-2xs font-semibold text-emerald-500">107 courses · 791 sections imported</p>
+              <div class="w-full progress-bar-container !h-1.5">
+                <div id="progress-bar" class="progress-bar-fill" style="width: 35%;"></div>
               </div>
             </div>
-            <div class="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
-              <button id="btn-revert-default" type="button" title="Switch back to official pre-loaded routine" class="hidden px-2.5 py-1.5 text-fluid-2xs font-bold rounded-lg bg-[var(--pill-bg)] hover:bg-[var(--bg-card-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-brandBorder whitespace-nowrap flex items-center gap-1.5 shadow-sm transition-all">
-                <i class="fa-solid fa-rotate-left text-xs"></i> Official Routine
-              </button>
-              <button id="btn-change-pdf" type="button" title="Upload a custom routine PDF" class="px-2.5 py-1.5 text-fluid-2xs font-bold rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 hover:text-orange-300 border border-orange-500/30 whitespace-nowrap flex items-center gap-1.5 shadow-sm transition-all">
-                <i class="fa-solid fa-cloud-arrow-up text-xs"></i> Custom PDF
-              </button>
+          </div>
+
+          <!-- Action Buttons: Preview PDF & Custom PDF -->
+          <div class="flex items-center gap-2 pt-1">
+            <a id="btn-preview-pdf" href="/api/catalogs/pdf" target="_blank" class="flex-1 py-2 px-3 rounded-full border border-brandBorder hover:bg-[var(--bg-card-hover)] text-fluid-2xs font-bold text-[var(--text-primary)] transition-all flex items-center justify-center gap-1.5 shadow-sm">
+              <i class="fa-regular fa-eye text-xs"></i>
+              <span>Preview PDF</span>
+            </a>
+            <button id="btn-change-pdf" type="button" class="flex-1 py-2 px-3 rounded-full bg-white hover:bg-zinc-200 text-zinc-900 text-fluid-2xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm">
+              <i class="fa-solid fa-arrow-up-from-bracket text-xs"></i>
+              <span>Custom PDF</span>
+            </button>
+          </div>
+
+          <!-- Revert to Official Button (shown when custom routine active) -->
+          <button id="btn-revert-default" type="button" class="hidden w-full py-1.5 px-3 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/30 text-fluid-2xs font-bold transition-all flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-rotate-left text-xs"></i> Revert to Official Routine
+          </button>
+
+          <!-- Input Mode Switch -->
+          <div class="pt-2 border-t border-brandBorder flex items-center justify-between text-fluid-2xs text-[var(--text-muted)]">
+            <span>Input Mode:</span>
+            <div class="flex items-center gap-1">
+              <button id="tab-pdf" type="button" class="px-2 py-0.5 rounded font-bold bg-orange-600 text-white">PDF</button>
+              <button id="tab-manual" type="button" class="px-2 py-0.5 rounded font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Manual</button>
             </div>
           </div>
 
-          <!-- Hidden status for test compatibility -->
+          <!-- Hidden elements for script compatibility -->
+          <input id="routine-pdf" type="file" accept="application/pdf,.pdf" class="hidden">
+          <div id="pdf-dropzone" class="hidden"></div>
+          <div id="pdf-active-card" class="hidden">
+            <span id="pdf-file-stats" class="hidden"></span>
+          </div>
           <p id="import-status" role="status" aria-live="polite" class="text-fluid-xs text-orange-400 font-medium px-1"></p>
-
-          <!-- Warnings detail -->
-          <details id="import-warnings" hidden class="text-fluid-xs text-amber-500 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+          <details id="import-warnings" hidden class="text-fluid-xs text-amber-500 bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5">
             <summary class="cursor-pointer font-bold flex items-center gap-1.5">
               <i class="fa-solid fa-triangle-exclamation"></i> Import notices
             </summary>
-            <ul id="import-warning-list" class="mt-2 space-y-1 list-disc list-inside text-fluid-2xs opacity-90"></ul>
+            <ul id="import-warning-list" class="mt-1 space-y-1 list-disc list-inside text-fluid-2xs opacity-90"></ul>
           </details>
-        </div>
 
-        <!-- Step 2: Course & Faculty Selection Card -->
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <main id="workspace" class="flex-1 max-w-7xl mx-auto w-full p-3 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5">
+    
+    <!-- Left Input & Control Station (col-span-5) -->
+    <aside id="input-workspace" class="lg:col-span-5 flex flex-col gap-3">
+
+      <!-- PDF Mode Container -->
+      <div id="pdf-container" class="flex flex-col gap-3">
+
+        <!-- Course & Faculty Selection Card (Step 1 of active workflow) -->
         <div id="catalog-panel" hidden class="glass rounded-xl p-4 lg:p-5 flex flex-col gap-3.5">
           <div class="flex items-center justify-between">
             <h2 class="text-fluid-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
-              <span class="h-5 w-5 rounded-full bg-orange-500/20 text-orange-400 text-fluid-2xs flex items-center justify-center font-bold">2</span>
+              <span class="h-5 w-5 rounded-full bg-orange-500/20 text-orange-400 text-fluid-2xs flex items-center justify-center font-bold">1</span>
               Choose Courses
             </h2>
             <span id="catalog-count" class="text-fluid-xs font-bold text-orange-500">0 selected</span>
           </div>
 
-          <!-- Search & Filter -->
+          <!-- Search & Filter Bar with Integrated Campus Days -->
           <div class="flex flex-col gap-2.5">
-            <div class="relative">
-              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-[var(--text-muted)] text-sm"></i>
-              <input id="catalog-search" type="search" class="glass-input rounded-xl pl-9 pr-9 py-2.5 w-full font-medium" placeholder="Search code (CSE 1111), acronym (AI, OOP, SPL, DLD), or name...">
-              <button id="btn-clear-search" type="button" class="absolute right-3 top-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm hidden">
-                <i class="fa-solid fa-xmark"></i>
-              </button>
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div class="relative flex-1">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-[var(--text-muted)] text-sm"></i>
+                <input id="catalog-search" type="search" class="glass-input rounded-xl pl-9 pr-9 py-2.5 w-full font-medium" placeholder="Search code (CSE 1111), acronym (AI, OOP, SPL, DLD), or name...">
+                <button id="btn-clear-search" type="button" class="absolute right-3 top-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm hidden">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+
+              <!-- Campus Days Filter placed directly inside course selection filters -->
+              <div id="week-preferences" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--bg-subtle)] border border-brandBorder text-fluid-xs flex-shrink-0">
+                <label for="campus-days" class="font-bold text-[var(--text-secondary)] flex items-center gap-1 whitespace-nowrap text-fluid-2xs">
+                  <i class="fa-solid fa-calendar-day text-orange-500"></i> Days:
+                </label>
+                <select id="campus-days" class="bg-transparent font-bold text-[var(--text-primary)] cursor-pointer outline-none text-fluid-2xs">
+                  <option value="" class="bg-[var(--bg-secondary)]">Any days</option>
+                  <option value="3" class="bg-[var(--bg-secondary)]">3 Days</option>
+                  <option value="4" class="bg-[var(--bg-secondary)]">4 Days</option>
+                  <option value="5" class="bg-[var(--bg-secondary)]">5 Days</option>
+                </select>
+              </div>
             </div>
 
             <!-- Program Filters Container -->

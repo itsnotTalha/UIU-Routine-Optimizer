@@ -117,6 +117,17 @@ def get_default_catalog_endpoint():
     return get_default_catalog()
 
 
+@router.get('/catalogs/pdf')
+def get_default_pdf():
+    for rdir in (ROUTINES_DIR, BACKEND_ROUTINES_DIR):
+        if rdir.exists():
+            pdfs = sorted(rdir.glob('*.pdf'))
+            if pdfs:
+                from fastapi.responses import FileResponse
+                return FileResponse(pdfs[-1], media_type='application/pdf', filename=pdfs[-1].name)
+    raise HTTPException(404, 'Routine PDF not found.')
+
+
 @router.get('/catalogs/{catalog_id}')
 def get_catalog(catalog_id: str):
     return load_catalog(catalog_id)

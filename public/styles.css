@@ -595,21 +595,13 @@ body > footer { flex: 0 0 auto; padding: 5px 12px !important; font-size: 10px; }
 #calendar-export-target .calendar-time-ticks span { font-size: 10px; }
 #calendar-export-target .class-block-horizontal { top: 3px; bottom: 3px; padding: 4px 6px; }
 #details-modal > div { max-height: 90dvh; overflow-y: auto; }
-.workspace-switch { display: none; }
 :focus-visible { outline: 2px solid var(--accent-light); outline-offset: 2px; }
 
 @media (max-width: 900px) {
-  .workspace-switch { display: flex; flex-shrink: 0; gap: 6px; padding: 6px 12px 0; }
-  .workspace-switch button { flex: 1; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; font-weight: 700; font-size: 12px; background: var(--bg-card); color: var(--text-secondary); }
-  .workspace-switch button[aria-pressed="true"] { background: var(--accent); color: white; }
-  #workspace { grid-template-columns: minmax(0, 1fr); padding: 8px; }
-  body[data-workspace="courses"] #schedule-workspace,
-  body[data-workspace="schedules"] #input-workspace { display: none; }
+  #workspace { padding: 8px; }
   body > header { padding: 8px !important; }
   body > header > div { gap: 8px; }
   body > footer { display: none; }
-  #pdf-drop-card > :first-child { display: none; }
-  #pdf-drop-card { padding: 8px; }
   #catalog-panel { padding: 10px; }
   #empty-state { justify-content: flex-start; padding: 20px; }
   #schedule-workspace { overflow: auto; }
@@ -643,42 +635,139 @@ body > footer { flex: 0 0 auto; padding: 5px 12px !important; font-size: 10px; }
   body > header a[href*="github"] { display: none; }
 }
 
-/* Selection and results each own the entire workspace, at every screen size. */
-.workspace-switch { display: flex; flex-shrink: 0; gap: 6px; padding: 6px 12px 0; }
-.workspace-switch button { border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 20px; font-size: 12px; font-weight: 700; background: var(--bg-card); color: var(--text-secondary); }
-.workspace-switch button[aria-pressed="true"] { background: var(--accent); color: white; }
+/* ==========================================================================
+   Modern Segmented Workspace Navigation & Toolbar
+   ========================================================================== */
+.workspace-nav-bar {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.workspace-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.workspace-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 14px;
+  padding: 10px 22px;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.workspace-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
+}
+
+.workspace-tab[aria-pressed="true"] {
+  background: linear-gradient(135deg, #F97316 0%, #EA580C 100%) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.4);
+}
+
+.workspace-tab[aria-pressed="true"] .tab-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+}
+
+.workspace-tab[aria-pressed="false"] {
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+}
+
+.workspace-tab[aria-pressed="false"]:hover {
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
+  border-color: var(--border-hover);
+}
+
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 800;
+  background: var(--pill-bg);
+  color: var(--text-secondary);
+}
+
+/* Routine Dropdown Trigger Button - Perfectly matches toolbar tabs */
+#btn-routine-dropdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 14px;
+  padding: 10px 20px;
+  font-size: 14.5px;
+  font-weight: 700;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 2px 6px var(--shadow-color);
+}
+
+#btn-routine-dropdown:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-hover);
+}
+
+/* Routine Source Dropdown Animation & Depth */
+#routine-dropdown-menu {
+  animation: dropdownFadeIn 0.16s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+  0% { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 #workspace { grid-template-columns: minmax(0, 1fr); }
 body[data-workspace="courses"] #schedule-workspace,
 body[data-workspace="schedules"] #input-workspace { display: none; }
-#week-preferences { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 8px 12px; flex-shrink: 0; }
-#week-preferences label { font-size: 12px; font-weight: 700; }
-#week-preferences select { padding: 6px 10px; font-size: 12px; }
-#week-preferences span { font-size: 11px; color: var(--text-muted); }
+
+/* Compact Routine Status Bar */
+#pdf-drop-card {
+  padding: 8px 14px;
+  border: 1px solid var(--border-color);
+}
+#pdf-active-card {
+  padding: 0;
+}
+
 #error-state { flex-shrink: 0; max-height: 100px; overflow: auto; padding: 10px; }
+
 @media (min-width: 901px) {
-  #catalog-panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; column-gap: 20px; }
+  #catalog-panel { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); grid-template-rows: auto auto minmax(0, 1fr) auto; column-gap: 20px; }
   #catalog-panel > :first-child { grid-column: 1; grid-row: 1; }
   #catalog-panel > :nth-child(2) { grid-column: 1; grid-row: 2; }
   #catalog-list { grid-column: 1; grid-row: 3; }
   #faculty-panel { grid-column: 2; grid-row: 1 / 4; border-top: 0; border-left: 1px solid var(--border-color); padding: 0 0 0 20px; }
   #catalog-actions { grid-column: 1 / -1; grid-row: 4; align-items: center; }
   #btn-optimize-pdf { max-width: 420px; }
-  #pdf-drop-card { padding: 8px 12px; }
-  #pdf-drop-card > :first-child { display: none; }
-  #pdf-active-card { padding: 6px 10px; }
-  #course-list-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-content: start; }
-}
-@media (max-width: 900px) {
-  #week-preferences { gap: 6px; padding: 6px 10px; }
-  #week-preferences span { display: none; }
-}
-.workspace-switch button:disabled { opacity: .4; cursor: not-allowed; }
-@media (min-width: 901px) {
-  #input-workspace { display: grid; grid-template-columns: minmax(300px, .85fr) minmax(0, 1.15fr); grid-template-rows: auto auto minmax(0, 1fr); gap: 8px 12px; }
-  #input-workspace > :first-child { grid-column: 1; grid-row: 1; }
-  #week-preferences { grid-column: 2; grid-row: 1; }
-  #error-state { grid-column: 1 / -1; grid-row: 2; }
-  #pdf-container, #manual-panel { grid-column: 1 / -1; grid-row: 3; }
+  #course-list-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-content: start; }
 }
 
 /* Orange accents on neutral surfaces, with readable text in both themes. */

@@ -25,9 +25,41 @@ const pdfOriginBadge = document.getElementById('pdf-origin-badge');
 const btnRevertDefault = document.getElementById('btn-revert-default');
 const routineSourceBadge = document.getElementById('routine-source-badge');
 
+const btnRoutineDropdown = document.getElementById('btn-routine-dropdown');
+const routineDropdownMenu = document.getElementById('routine-dropdown-menu');
+const toolbarDropdownChevron = document.getElementById('toolbar-dropdown-chevron');
+const toolbarRoutineLabel = document.getElementById('toolbar-routine-label');
+const statCoursesCount = document.getElementById('stat-courses-count');
+const statSectionsCount = document.getElementById('stat-sections-count');
+
+if (btnRoutineDropdown && routineDropdownMenu) {
+  btnRoutineDropdown.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isHidden = routineDropdownMenu.classList.toggle('hidden');
+    btnRoutineDropdown.setAttribute('aria-expanded', String(!isHidden));
+    if (toolbarDropdownChevron) {
+      toolbarDropdownChevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!routineDropdownMenu.contains(e.target) && !btnRoutineDropdown.contains(e.target)) {
+      routineDropdownMenu.classList.add('hidden');
+      btnRoutineDropdown.setAttribute('aria-expanded', 'false');
+      if (toolbarDropdownChevron) toolbarDropdownChevron.style.transform = 'rotate(0deg)';
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      routineDropdownMenu.classList.add('hidden');
+      btnRoutineDropdown.setAttribute('aria-expanded', 'false');
+      if (toolbarDropdownChevron) toolbarDropdownChevron.style.transform = 'rotate(0deg)';
+    }
+  });
+}
+
 function showProgress(title, desc, percent) {
-  if (pdfDropzone) pdfDropzone.classList.add('hidden');
-  if (pdfActiveCard) pdfActiveCard.classList.add('hidden');
   if (pdfProgressOverlay) {
     pdfProgressOverlay.classList.remove('hidden');
     if (progressTitle) progressTitle.textContent = title;
@@ -106,6 +138,7 @@ function invalidateCatalogResults() {
   requestVersion++;
   setWorkspaceView('courses');
   catalogRequest = null;
+  catalogTotal = 0;
   optimizedSchedules = [];
   resultsView.classList.add('hidden');
   errorState.classList.add('hidden');
@@ -113,6 +146,7 @@ function invalidateCatalogResults() {
   document.getElementById('schedule-pagination').hidden = true;
   updateDownloadButtonState();
   updateStepper(catalog ? 2 : 1);
+  window.updateWorkspaceBadges?.();
 }
 
 function persistCatalog() {
@@ -160,38 +194,31 @@ function showCatalog() {
   document.getElementById('catalog-panel').hidden = false;
   const count = catalog.courses.reduce((n, c) => n + c.sections.length, 0);
   
-  if (pdfActiveCard && pdfDropzone) {
-    pdfDropzone.classList.add('hidden');
-    pdfActiveCard.classList.remove('hidden');
-    if (pdfFileName) {
-      pdfFileName.textContent = catalog.filename || (catalog.is_default || catalog.id === 'default' ? 'UIU Routine (Fall 2026)' : 'routine.pdf');
+  if (statCoursesCount) statCoursesCount.textContent = catalog.courses.length;
+  if (statSectionsCount) statSectionsCount.textContent = count;
+
+  const isDefaultRoutine = Boolean(catalog.is_default || catalog.id === 'default');
+  if (toolbarRoutineLabel) {
+    toolbarRoutineLabel.textContent = isDefaultRoutine ? 'Fall 2026' : (catalog.filename ? catalog.filename.slice(0, 16) + '…' : 'Custom');
+  }
+
+  if (pdfFileName) {
+    pdfFileName.textContent = catalog.filename || (isDefaultRoutine ? 'Class Routine with Faculty assign Fall 2026.pdf' : 'routine.pdf');
+  }
+  if (pdfFileStats) {
+    pdfFileStats.textContent = `${catalog.courses.length} courses · ${count} sections imported`;
+  }
+  if (pdfOriginBadge) {
+    if (isDefaultRoutine) {
+      pdfOriginBadge.textContent = 'Official';
+      pdfOriginBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/60';
+    } else {
+      pdfOriginBadge.textContent = 'Custom';
+      pdfOriginBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-950 text-orange-400 border border-orange-800/60';
     }
-    if (pdfFileStats) {
-      pdfFileStats.textContent = `${catalog.courses.length} courses · ${count} sections imported`;
-    }
-    const isDefaultRoutine = Boolean(catalog.is_default || catalog.id === 'default');
-    if (pdfOriginBadge) {
-      if (isDefaultRoutine) {
-        pdfOriginBadge.textContent = 'Official';
-        pdfOriginBadge.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
-      } else {
-        pdfOriginBadge.textContent = 'Custom';
-        pdfOriginBadge.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 border border-orange-500/30';
-      }
-    }
-    if (btnRevertDefault) {
-      if (isDefaultRoutine) {
-        btnRevertDefault.classList.add('hidden');
-      } else {
-        btnRevertDefault.classList.remove('hidden');
-      }
-    }
-    if (routineSourceBadge) {
-      routineSourceBadge.textContent = isDefaultRoutine ? 'Pre-Loaded' : 'Custom PDF';
-      routineSourceBadge.className = isDefaultRoutine 
-        ? 'text-fluid-2xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-        : 'text-fluid-2xs font-bold px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20';
-    }
+  }
+  if (btnRevertDefault) {
+    btnRevertDefault.classList.toggle('hidden', isDefaultRoutine);
   }
 
   importStatus.textContent = ''; // The active-file banner already shows the import summary.
@@ -452,6 +479,7 @@ function renderCatalogList() {
 }
 
 function renderSelectedCourses() {
+  window.updateWorkspaceBadges?.();
   const container = document.getElementById('selected-courses');
   container.replaceChildren();
   
@@ -746,6 +774,7 @@ async function fetchCatalogSchedules(offset = 0) {
     renderCalendarSchedule(optimizedSchedules[0]);
     updateScheduleMetrics(0);
     updateDownloadButtonState();
+    window.updateWorkspaceBadges?.();
     updateStepper(3);
     setWorkspaceView('schedules');
   } catch (error) {
