@@ -770,6 +770,103 @@ body[data-workspace="schedules"] #input-workspace { display: none; }
   #course-list-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-content: start; }
 }
 
+/* ==========================================================================
+   Mobile, Touch & Responsive Optimizations
+   ========================================================================== */
+html, body {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  overscroll-behavior-y: none;
+}
+
+body {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+button, a, input, select, .catalog-course-item, .faculty-pill, .filter-chip, .workspace-tab {
+  touch-action: manipulation;
+}
+
+/* Instant tap feedback */
+button:active:not(:disabled),
+.catalog-course-item:active,
+.filter-chip:active,
+.faculty-pill:active {
+  transform: scale(0.97);
+  transition: transform 0.08s ease;
+}
+
+.faculty-pill {
+  min-height: 34px;
+  user-select: none;
+}
+
+.filter-chip {
+  min-height: 36px;
+  user-select: none;
+}
+
+.catalog-course-item {
+  min-height: 48px;
+  user-select: none;
+}
+
+/* Mobile responsive toolbar & dropdown */
+@media (max-width: 640px) {
+  .workspace-nav-bar {
+    padding: 8px 12px;
+  }
+  .workspace-tab {
+    padding: 8px 12px;
+    font-size: 13px;
+    gap: 6px;
+    border-radius: 10px;
+  }
+  #btn-routine-dropdown {
+    padding: 8px 12px;
+    font-size: 13px;
+    gap: 6px;
+    border-radius: 10px;
+  }
+  #routine-dropdown-menu {
+    width: calc(100vw - 24px);
+    max-width: 360px;
+    right: 0;
+  }
+  #catalog-panel {
+    padding: 12px;
+  }
+  #catalog-list {
+    max-height: 38vh;
+  }
+  #selected-courses {
+    max-height: 30vh;
+  }
+  #calendar-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+}
+
+@media (max-width: 400px) {
+  .workspace-tab {
+    padding: 7px 9px;
+    font-size: 12px;
+    gap: 5px;
+  }
+  #btn-routine-dropdown {
+    padding: 7px 9px;
+    font-size: 12px;
+    gap: 5px;
+  }
+  .tab-label-full {
+    display: none !important;
+  }
+  .tab-label-short {
+    display: inline !important;
+  }
+}
+
 /* Orange accents on neutral surfaces, with readable text in both themes. */
 [data-theme="light"] .text-orange-400,
 [data-theme="light"] .text-orange-500 { color: #C2410C; }

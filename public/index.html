@@ -2,9 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>UIU Routine Optimizer — Conflict-Free Schedule Generator</title>
   
+  <!-- Mobile & PWA Capabilities -->
+  <meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#FAFAFA" media="(prefers-color-scheme: light)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="UIU Optimizer">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/icon.svg">
+
   <!-- Early Theme Setter to Prevent Flash -->
   <script>
     (function() {
@@ -100,14 +111,15 @@
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-3 relative">
       
       <!-- Left: Primary Navigation Tabs (Courses & Faculty vs Schedules) -->
-      <nav class="flex items-center gap-2.5" aria-label="Workspace view">
+      <nav class="flex items-center gap-1.5 sm:gap-2.5" aria-label="Workspace view">
         <button type="button" data-workspace="courses" aria-pressed="true" class="workspace-tab">
-          <i class="fa-solid fa-layer-group text-base"></i>
-          <span>Courses &amp; Faculty</span>
+          <i class="fa-solid fa-layer-group text-sm sm:text-base"></i>
+          <span class="tab-label-full">Courses &amp; Faculty</span>
+          <span class="tab-label-short hidden">Courses</span>
           <span id="tab-course-badge" class="tab-badge">0</span>
         </button>
         <button type="button" data-workspace="schedules" aria-pressed="false" class="workspace-tab">
-          <i class="fa-regular fa-calendar-check text-base"></i>
+          <i class="fa-regular fa-calendar-check text-sm sm:text-base"></i>
           <span>Schedules</span>
           <span id="tab-schedule-badge" class="tab-badge hidden">0</span>
         </button>
@@ -437,7 +449,8 @@ Wednesday 09:50-11:10</pre>
             <span class="font-bold uppercase tracking-wider text-[var(--text-primary)] text-fluid-xs flex items-center gap-2">
               <i class="fa-solid fa-calendar-week text-orange-500"></i> Weekly Timetable
             </span>
-            <div class="flex items-center gap-3 text-fluid-2xs font-semibold">
+            <div class="flex items-center gap-2.5 sm:gap-3 text-fluid-2xs font-semibold">
+              <span class="sm:hidden text-orange-400 font-bold flex items-center gap-1 bg-orange-500/10 px-2 py-0.5 rounded-md border border-orange-500/20"><i class="fa-solid fa-arrows-left-right text-[10px]"></i> Swipe</span>
               <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-orange-500"></span> Classes</span>
               <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded bg-[var(--bg-subtle)] border border-brandBorder"></span> Free Slots</span>
             </div>
