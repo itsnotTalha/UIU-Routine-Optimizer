@@ -201,6 +201,12 @@ function showCatalog() {
   if (statCoursesCount) statCoursesCount.textContent = catalog.courses.length;
   if (statSectionsCount) statSectionsCount.textContent = count;
 
+  const drawerCourses = document.getElementById('drawer-courses-count');
+  const drawerSections = document.getElementById('drawer-sections-count');
+  const drawerTitle = document.getElementById('drawer-routine-title');
+  if (drawerCourses) drawerCourses.textContent = catalog.courses.length;
+  if (drawerSections) drawerSections.textContent = count;
+
   const isDefaultRoutine = Boolean(catalog.is_default || catalog.id === 'default');
   if (toolbarRoutineLabel) {
     toolbarRoutineLabel.textContent = isDefaultRoutine ? 'Fall 2026' : (catalog.filename ? catalog.filename.slice(0, 16) + '…' : 'Custom');
@@ -237,10 +243,107 @@ function showCatalog() {
   document.getElementById('import-warnings').hidden = !catalog.warnings?.length;
   
   renderProgramFilters();
+  populateRoutineTimeDropdowns();
   renderCatalogList();
   renderSelectedCourses();
   updateStepper(2);
 }
+
+function formatTimeOption(t) {
+  const [hStr, mStr] = t.split(':');
+  const h = parseInt(hStr, 10);
+  const m = mStr || '00';
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  const h12Str = String(h12).padStart(2, '0');
+  return `${h12Str}:${m} ${ampm} (${t})`;
+}
+
+function updateTimeFilterPill() {
+  const pillLabel = document.getElementById('time-filter-pill-label');
+  const start = document.getElementById('earliest-start')?.value;
+  const end = document.getElementById('latest-end')?.value;
+  if (!pillLabel) return;
+  if (start && end) {
+    pillLabel.textContent = `Time: ${start}–${end}`;
+  } else if (start) {
+    pillLabel.textContent = `Start: ≥${start}`;
+  } else if (end) {
+    pillLabel.textContent = `End: ≤${end}`;
+  } else {
+    pillLabel.textContent = 'Time: Any';
+  }
+}
+window.updateTimeFilterPill = updateTimeFilterPill;
+
+function populateRoutineTimeDropdowns() {
+  const startSelect = document.getElementById('earliest-start-select');
+  const endSelect = document.getElementById('latest-end-select');
+  if (!startSelect || !endSelect || !catalog) return;
+
+  const rawStarts = new Set();
+  const rawEnds = new Set();
+  for (const course of catalog.courses) {
+    for (const section of course.sections) {
+      for (const slot of section.slots) {
+        if (slot.start_time) rawStarts.add(slot.start_time);
+        if (slot.end_time) rawEnds.add(slot.end_time);
+      }
+    }
+  }
+
+  const currentStart = document.getElementById('earliest-start')?.value || '';
+  const currentEnd = document.getElementById('latest-end')?.value || '';
+
+  startSelect.innerHTML = '<option value="">Any start time</option>';
+  for (const t of [...rawStarts].sort()) {
+    const opt = document.createElement('option');
+    opt.value = t;
+    opt.textContent = formatTimeOption(t);
+    startSelect.appendChild(opt);
+  }
+  const customStartOpt = document.createElement('option');
+  customStartOpt.value = 'custom';
+  customStartOpt.textContent = 'Custom time...';
+  startSelect.appendChild(customStartOpt);
+
+  endSelect.innerHTML = '<option value="">Any finish time</option>';
+  for (const t of [...rawEnds].sort()) {
+    const opt = document.createElement('option');
+    opt.value = t;
+    opt.textContent = formatTimeOption(t);
+    endSelect.appendChild(opt);
+  }
+  const customEndOpt = document.createElement('option');
+  customEndOpt.value = 'custom';
+  customEndOpt.textContent = 'Custom time...';
+  endSelect.appendChild(customEndOpt);
+
+  if (currentStart) {
+    if ([...startSelect.options].some(o => o.value === currentStart)) {
+      startSelect.value = currentStart;
+    } else {
+      startSelect.value = 'custom';
+      document.getElementById('earliest-start')?.classList.remove('hidden');
+    }
+  } else {
+    startSelect.value = '';
+  }
+
+  if (currentEnd) {
+    if ([...endSelect.options].some(o => o.value === currentEnd)) {
+      endSelect.value = currentEnd;
+    } else {
+      endSelect.value = 'custom';
+      document.getElementById('latest-end')?.classList.remove('hidden');
+    }
+  } else {
+    endSelect.value = '';
+  }
+
+  updateTimeFilterPill();
+}
+window.populateRoutineTimeDropdowns = populateRoutineTimeDropdowns;
 
 // Advanced Course Search, Acronym Engine & Synonym Dictionary
 const COURSE_SYNONYMS = {
@@ -515,10 +618,13 @@ function renderCatalogList() {
       facultyWrapper.className = 'mobile-faculty-wrapper w-full mt-1 pt-2 border-t border-brandBorder flex flex-col gap-1.5';
 
       const facultyHeader = document.createElement('div');
+      const priorityLabel = preferences.length > 1 
+        ? `${preferences.length} selected (Priority: #${preferences.map((_, i) => i + 1).join(' > #')})` 
+        : (preferences.length === 1 ? '1 selected (Priority #1)' : 'All allowed');
       facultyHeader.className = 'flex items-center justify-between text-[11px]';
       facultyHeader.innerHTML = `
         <span class="font-bold uppercase tracking-wider text-[var(--text-muted)]">Preferred Faculty:</span>
-        <span class="text-orange-500 font-semibold">${preferences.length ? `${preferences.length} selected` : 'All allowed'}</span>
+        <span class="text-orange-500 font-semibold">${priorityLabel}</span>
       `;
       facultyWrapper.appendChild(facultyHeader);
 
@@ -545,17 +651,21 @@ function renderCatalogList() {
       };
       pillsRow.appendChild(allPill);
 
-      // Specific Faculty Pills
+      // Specific Faculty Pills with Priority Badging
       for (const faculty of availableFaculties) {
         const isChecked = preferences.includes(faculty);
+        const priorityIndex = isChecked ? preferences.indexOf(faculty) + 1 : 0;
         const facPill = document.createElement('button');
         facPill.type = 'button';
-      facPill.setAttribute('aria-pressed', String(isChecked));
+        facPill.setAttribute('aria-pressed', String(isChecked));
         const secCount = course.sections.filter(s => s.faculty === faculty).length;
         facPill.className = `faculty-pill px-2.5 py-1 rounded-lg text-fluid-2xs font-bold border transition-all flex items-center gap-1.5 ${
           isChecked ? 'active' : ''
         }`;
-        facPill.innerHTML = `<span>${escapeHtml(faculty)}</span> <span class="text-fluid-2xs opacity-75 font-normal">(${secCount})</span>`;
+        const badgeHtml = isChecked 
+          ? `<span class="priority-badge">#${priorityIndex}</span>` 
+          : '';
+        facPill.innerHTML = `${badgeHtml}<span>${escapeHtml(faculty)}</span> <span class="text-fluid-2xs opacity-75 font-normal">(${secCount})</span>`;
         facPill.onclick = (e) => {
           e.stopPropagation();
           let updated;
@@ -659,9 +769,15 @@ function renderSelectedCourses() {
     const facultySection = document.createElement('div');
     facultySection.className = 'flex flex-col gap-1.5';
     
-    const facultyLabel = document.createElement('span');
-    facultyLabel.className = 'text-fluid-2xs font-bold uppercase tracking-wider text-[var(--text-muted)]';
-    facultyLabel.textContent = 'Preferred Faculty:';
+    const priorityLabel = preferences.length > 1 
+      ? `${preferences.length} selected (Priority: #${preferences.map((_, i) => i + 1).join(' > #')})` 
+      : (preferences.length === 1 ? '1 selected (Priority #1)' : 'All allowed');
+    const facultyLabel = document.createElement('div');
+    facultyLabel.className = 'flex items-center justify-between text-fluid-2xs';
+    facultyLabel.innerHTML = `
+      <span class="font-bold uppercase tracking-wider text-[var(--text-muted)]">Preferred Faculty:</span>
+      <span class="text-orange-500 font-semibold">${priorityLabel}</span>
+    `;
     facultySection.appendChild(facultyLabel);
 
     const pillsRow = document.createElement('div');
@@ -687,9 +803,10 @@ function renderSelectedCourses() {
     };
     pillsRow.appendChild(allPill);
 
-    // Specific Faculty Pills
+    // Specific Faculty Pills with Priority Badging
     for (const faculty of availableFaculties) {
       const isChecked = preferences.includes(faculty);
+      const priorityIndex = isChecked ? preferences.indexOf(faculty) + 1 : 0;
       const facPill = document.createElement('button');
       facPill.type = 'button';
       facPill.setAttribute('aria-pressed', String(isChecked));
@@ -697,7 +814,10 @@ function renderSelectedCourses() {
       facPill.className = `faculty-pill px-2.5 py-1 rounded-lg text-fluid-2xs font-bold border transition-all flex items-center gap-1.5 ${
         isChecked ? 'active' : ''
       }`;
-      facPill.innerHTML = `<span>${escapeHtml(faculty)}</span> <span class="text-fluid-2xs opacity-75 font-normal">(${secCount})</span>`;
+      const badgeHtml = isChecked 
+        ? `<span class="priority-badge">#${priorityIndex}</span>` 
+        : '';
+      facPill.innerHTML = `${badgeHtml}<span>${escapeHtml(faculty)}</span> <span class="text-fluid-2xs opacity-75 font-normal">(${secCount})</span>`;
       facPill.onclick = () => {
         let updated;
         if (isChecked) {
@@ -903,9 +1023,14 @@ async function fetchCatalogSchedules(offset = 0) {
     
     emptyState.classList.add('hidden');
     resultsView.classList.remove('hidden');
-    combinationsCount.textContent = `Found ${catalogTotal.toLocaleString()} conflict-free combinations · ${data.exact_matches.toLocaleString()} match all preferences`;
+    const totalCount = catalogTotal || 0;
+    const matchCount = data.exact_matches;
+    const matchInfo = (matchCount !== undefined && matchCount !== null) 
+      ? ` · ${matchCount.toLocaleString()} match all preferences` 
+      : '';
+    combinationsCount.textContent = `Found ${totalCount.toLocaleString()} conflict-free combinations${matchInfo}`;
     document.getElementById('schedule-pagination').hidden = false;
-    document.getElementById('page-label').textContent = `${offset + 1}–${offset + optimizedSchedules.length} of ${catalogTotal.toLocaleString()}`;
+    document.getElementById('page-label').textContent = `${offset + 1}–${offset + optimizedSchedules.length} of ${totalCount.toLocaleString()}`;
     
     if (window.renderOptionSelectors) window.renderOptionSelectors();
     else if (typeof renderOptionSelectors === 'function') renderOptionSelectors();

@@ -138,3 +138,104 @@ def test_get_default_catalog(api, tmp_path):
     assert resp.status_code == 200
     assert resp.json()['id'] == 'default'
 
+
+
+def test_ranked_cache_reuses_pages_and_invalidates_data(monkeypatch):
+    catalog._SCHEDULE_CACHE.clear()
+    actual = catalog.solve_schedules
+    calls = []
+    def counted(*args, **kwargs):
+        calls.append(1)
+        return actual(*args, **kwargs)
+    monkeypatch.setattr(catalog, 'solve_schedules', counted)
+    courses = [{'course_name':'Cache test', 'sections':[{'name':'A', 'slots':[
+        {'day':'Monday', 'start_mins':600, 'end_mins':660}]}]}]
+    assert catalog.ranked_schedules(courses, None) == catalog.ranked_schedules(courses, None)
+    assert len(calls) == 1
+    catalog.ranked_schedules(courses, 3)
+    courses[0]['sections'][0]['slots'][0]['start_mins'] = 610
+    catalog.ranked_schedules(courses, None)
+    assert len(calls) == 3
+    monkeypatch.setattr(catalog, '_CACHE_TTL', -1)
+    catalog._SCHEDULE_CACHE.clear()
+    catalog.ranked_schedules(courses, None)
+    catalog.ranked_schedules(courses, None)
+    assert len(calls) == 5
+    catalog._SCHEDULE_CACHE.clear()
+
+
+def test_time_and_faculty_priorities_explain_alternatives(api):
+    data = upload(api)
+    payload = {'catalog_id': data['id'], 'selections': [
+        {'course_id': 'BSCSE:CSE 1112', 'faculties':['Teacher One']}],
+        'earliest_start':'11:00', 'latest_end':'14:00'}
+    strict = api.post('/api/catalogs/optimize', json=payload).json()
+    assert strict['total'] == 0
+    assert 'no section' in strict['notices'][0]
+    time_first = api.post('/api/catalogs/optimize', json={**payload, 'priority':'time_first', 'limit':1}).json()
+    assert time_first['total'] == 2
+    assert time_first['exact_matches'] == 0
+    assert time_first['schedules'][0][0]['section']['faculty'] == 'Teacher Two'
+    report = time_first['preference_reports'][0]
+    assert report['outside_minutes'] == 0
+    assert report['faculty_mismatches'] == 1
+    assert 'preferred: Teacher One' in report['warnings'][0]
+    faculty_first = api.post('/api/catalogs/optimize', json={**payload, 'priority':'faculty_first'}).json()
+    assert faculty_first['schedules'][0][0]['section']['faculty'] == 'Teacher One'
+    assert faculty_first['preference_reports'][0]['outside_minutes'] == 150
+    assert faculty_first['preference_reports'][0]['faculty_mismatches'] == 0
+    assert 'outside your preferred window' in faculty_first['preference_reports'][0]['warnings'][0]
+    second = api.post('/api/catalogs/optimize', json={**payload, 'priority':'time_first', 'offset':1, 'limit':1}).json()
+    assert second['preference_reports'][0]['outside_minutes'] == 150
+    # Hard campus-day constraints are not relaxed by priority mode.
+    assert api.post('/api/catalogs/optimize', json={**payload, 'priority':'time_first','campus_days':3}).json()['total'] == 0
+
+
+def test_exact_boundaries_open_ended_and_invalid_windows(api):
+    data = upload(api)
+    payload = {'catalog_id':data['id'], 'selections':[{'course_id':'BSCSE:CSE 1112'}]}
+    exact = api.post('/api/catalogs/optimize', json={**payload,'earliest_start':'08:30','latest_end':'11:00'}).json()
+    assert exact['total'] == exact['exact_matches'] == 1
+    assert exact['preference_reports'][0]['exact_match']
+    for key, time in [('earliest_start','11:00'),('latest_end','11:00')]:
+        assert api.post('/api/catalogs/optimize',json={**payload,key:time}).json()['total'] == 1
+    for extra in [{'earliest_start':'14:00','latest_end':'10:00'}, {'earliest_start':'11:00','latest_end':'11:00'}, {'earliest_start':'24:00'}, {'latest_end':'09:99'}, {'priority':'unknown'}]:
+        assert api.post('/api/catalogs/optimize',json={**payload,**extra}).status_code == 422
+
+
+def test_joint_faculty_clash_is_not_claimed_as_individual_unavailability(api):
+    data = upload(api)
+    payload = {'catalog_id':data['id'], 'priority':'faculty_first', 'earliest_start':'08:00','latest_end':'14:00',
+        'selections':[{'course_id':'BSCSE:CSE 1112','faculties':['Teacher One']},
+                      {'course_id':'BSCSE:ACT 2111','faculties':['Teacher One']}]}
+    result = api.post('/api/catalogs/optimize',json=payload).json()
+    assert result['exact_matches'] == 0
+    assert result['notices'] == []
+    assert result['preference_reports'][0]['faculty_mismatches'] == 1
+    assert result['total'] == 3  # Overlapping A/A is still excluded.
+
+
+def test_manual_time_preference_reports(api):
+    payload = {'courses':[{'course_name':'Course','raw_text':'A\nTeacher\nMonday 09:00-10:00'}], 'earliest_start':'11:00'}
+    assert api.post('/api/optimize',json=payload).json()['schedules'] == []
+    result = api.post('/api/optimize',json={**payload,'priority':'time_first'}).json()
+    assert len(result['schedules']) == 1
+    assert result['preference_reports'][0]['outside_minutes'] == 60
+
+
+def test_faculty_preference_priority_ordering(api):
+    data = upload(api)
+    # CSE 1112 has Teacher One (sec A, Saturday 08:30-11:00) and Teacher Two (sec B, Saturday 11:10-13:40).
+    # Prioritizing Teacher Two first should rank Teacher Two as schedule #0.
+    payload2 = {'catalog_id': data['id'], 'selections': [{'course_id': 'BSCSE:CSE 1112', 'faculties': ['Teacher Two', 'Teacher One']}]}
+    res2 = api.post('/api/catalogs/optimize', json=payload2).json()
+    assert res2['total'] == 2
+    assert res2['schedules'][0][0]['section']['faculty'] == 'Teacher Two'
+    assert res2['schedules'][1][0]['section']['faculty'] == 'Teacher One'
+
+    # Reversing priority to Teacher One first should rank Teacher One as schedule #0.
+    payload1 = {'catalog_id': data['id'], 'selections': [{'course_id': 'BSCSE:CSE 1112', 'faculties': ['Teacher One', 'Teacher Two']}]}
+    res1 = api.post('/api/catalogs/optimize', json=payload1).json()
+    assert res1['total'] == 2
+    assert res1['schedules'][0][0]['section']['faculty'] == 'Teacher One'
+    assert res1['schedules'][1][0]['section']['faculty'] == 'Teacher Two'

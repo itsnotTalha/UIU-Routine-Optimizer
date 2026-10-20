@@ -1,6 +1,9 @@
 const earliestInput = document.getElementById('earliest-start');
 const latestInput = document.getElementById('latest-end');
+const earliestSelect = document.getElementById('earliest-start-select');
+const latestSelect = document.getElementById('latest-end-select');
 const priorityInput = document.getElementById('preference-priority');
+
 function getSchedulingPreferences() {
   return {earliest_start: earliestInput.value || null, latest_end: latestInput.value || null, priority: priorityInput.value};
 }
@@ -23,11 +26,36 @@ function refreshPreferenceSummary() {
     time_first:'Minimize minutes outside your time window first, then courses without preferred faculty. Alternatives are labeled. Campus days and class clashes remain strict.',
     faculty_first:'Keep preferred faculty for as many courses as possible first, then minimize minutes outside your time window. Alternatives are labeled. Campus days and class clashes remain strict.'
   }[priority];
+  if (window.updateTimeFilterPill) window.updateTimeFilterPill();
 }
 function restoreSchedulingPreferences(saved) {
   earliestInput.value = saved.earliest_start || '';
   latestInput.value = saved.latest_end || '';
   priorityInput.value = ['strict','time_first','faculty_first'].includes(saved.priority) ? saved.priority : 'strict';
+  if (earliestSelect) {
+    if (earliestInput.value && [...earliestSelect.options].some(o => o.value === earliestInput.value)) {
+      earliestSelect.value = earliestInput.value;
+      earliestInput.classList.add('hidden');
+    } else if (earliestInput.value) {
+      earliestSelect.value = 'custom';
+      earliestInput.classList.remove('hidden');
+    } else {
+      earliestSelect.value = '';
+      earliestInput.classList.add('hidden');
+    }
+  }
+  if (latestSelect) {
+    if (latestInput.value && [...latestSelect.options].some(o => o.value === latestInput.value)) {
+      latestSelect.value = latestInput.value;
+      latestInput.classList.add('hidden');
+    } else if (latestInput.value) {
+      latestSelect.value = 'custom';
+      latestInput.classList.remove('hidden');
+    } else {
+      latestSelect.value = '';
+      latestInput.classList.add('hidden');
+    }
+  }
   refreshPreferenceSummary();
 }
 function preferencesChanged() {
@@ -37,8 +65,52 @@ function preferencesChanged() {
   if (catalog) persistCatalog();
 }
 [earliestInput, latestInput, priorityInput].forEach(input => input.addEventListener('change', preferencesChanged));
+
+if (earliestSelect) {
+  earliestSelect.addEventListener('change', () => {
+    if (earliestSelect.value === 'custom') {
+      earliestInput.classList.remove('hidden');
+      earliestInput.focus();
+    } else {
+      earliestInput.classList.add('hidden');
+      earliestInput.value = earliestSelect.value;
+      preferencesChanged();
+    }
+  });
+}
+
+if (latestSelect) {
+  latestSelect.addEventListener('change', () => {
+    if (latestSelect.value === 'custom') {
+      latestInput.classList.remove('hidden');
+      latestInput.focus();
+    } else {
+      latestInput.classList.add('hidden');
+      latestInput.value = latestSelect.value;
+      preferencesChanged();
+    }
+  });
+}
+
+const btnToggleTimeFilter = document.getElementById('btn-toggle-time-filter');
+if (btnToggleTimeFilter) {
+  btnToggleTimeFilter.addEventListener('click', () => {
+    const details = document.getElementById('schedule-preferences');
+    if (details) {
+      details.open = !details.open;
+      if (details.open) {
+        details.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  });
+}
+
 document.getElementById('clear-time-preferences').onclick = () => {
   earliestInput.value = latestInput.value = '';
+  if (earliestSelect) earliestSelect.value = '';
+  if (latestSelect) latestSelect.value = '';
+  earliestInput.classList.add('hidden');
+  latestInput.classList.add('hidden');
   preferencesChanged();
 };
 window.renderPreferenceReport = function(index) {

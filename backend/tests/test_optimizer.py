@@ -71,3 +71,28 @@ def test_solve_schedules():
     
     assert {"Course A": "A1", "Course B": "B2"} in names_combinations
     assert {"Course A": "A2", "Course B": "B1"} in names_combinations
+
+
+def test_bitmask_solver_matches_brute_force():
+    import itertools
+    import random
+    rng = random.Random(42)
+    for _ in range(40):
+        courses = []
+        for c in range(4):
+            sections = []
+            for s in range(3):
+                start = rng.choice([540, 600, 660, 720])
+                slots = [{'day': rng.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']),
+                          'start_mins': start, 'end_mins': start + 60}]
+                sections.append({'name': str(s), 'slots': slots})
+            courses.append({'course_name': str(c), 'sections': sections})
+        for target in [None, 3, 4, 5]:
+            expected = []
+            for combination in itertools.product(*(c['sections'] for c in courses)):
+                if any(has_conflict(list(combination[:i]), sec) for i, sec in enumerate(combination)):
+                    continue
+                if target is not None and len({slot['day'] for sec in combination for slot in sec['slots']}) != target:
+                    continue
+                expected.append([{'course_name': str(i), 'section': sec} for i, sec in enumerate(combination)])
+            assert solve_schedules(courses, campus_days=target) == expected
