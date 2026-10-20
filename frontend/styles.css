@@ -250,14 +250,16 @@ body {
   border: 1px solid var(--pill-border);
   color: var(--text-secondary);
   font-size: clamp(0.76rem, 0.66vw + 0.26vh, 0.92rem);
+  padding: 6px 12px;
+  border-radius: 8px;
 }
 
 .faculty-pill.active {
-  background: var(--accent-glow) !important;
-  border-color: var(--accent) !important;
-  color: var(--text-primary) !important;
-  font-weight: 600;
-  box-shadow: 0 0 8px var(--accent-glow);
+  background: #EA580C !important;
+  border-color: #EA580C !important;
+  color: #FFFFFF !important;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35);
 }
 
 /* Course card in catalog list */
@@ -265,6 +267,7 @@ body {
   background: var(--bg-subtle);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
+  border-radius: 14px;
   transition: all 0.18s ease;
 }
 
@@ -274,9 +277,14 @@ body {
 }
 
 .catalog-course-item.selected {
-  background: var(--accent-glow);
-  border-color: var(--accent);
-  box-shadow: 0 2px 8px var(--shadow-color);
+  background: rgba(234, 88, 12, 0.08);
+  border-color: #EA580C;
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.15);
+}
+
+[data-theme="light"] .catalog-course-item.selected {
+  background: rgba(234, 88, 12, 0.06);
+  border-color: #EA580C;
 }
 
 /* ==========================================================================
@@ -569,7 +577,7 @@ body > footer { flex: 0 0 auto; padding: 5px 12px !important; font-size: 10px; }
 #selected-courses { flex: 1 1 0; }
 #selected-courses > div { padding: 10px; }
 #catalog-actions { padding-top: 8px; gap: 4px; }
-#btn-optimize-pdf, #btn-optimize { padding-top: 10px; padding-bottom: 10px; }
+#btn-optimize-pdf, #btn-optimize { padding: 8px 16px; min-height: 38px; font-size: 13.5px; border-radius: 12px; }
 #catalog-actions > p { font-size: 10px; }
 #manual-panel > .glass { flex: 1 1 0; min-height: 0; padding: 12px; gap: 10px; }
 #manual-panel > .glass > :not(#course-list-container) { flex-shrink: 0; }
@@ -579,8 +587,21 @@ body > footer { flex: 0 0 auto; padding: 5px 12px !important; font-size: 10px; }
 #results-view { min-width: 0; min-height: 0; gap: 10px; }
 #results-view > :not(#timetable-panel) { flex-shrink: 0; padding: 10px; min-width: 0; }
 #results-view > :first-child { flex-wrap: wrap; }
-#option-selector-container { flex: 1 1 0; min-width: 0; }
-#option-selector-container > button { flex-shrink: 0; }
+#option-selector-container {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+#option-selector-container > button {
+  flex-shrink: 0;
+  min-height: 34px;
+}
 #page-label { white-space: nowrap; }
 #timetable-panel { flex: 1 1 0; min-height: 0; padding: 12px; gap: 10px; }
 #timetable-panel > :first-child { flex-shrink: 0; }
@@ -598,13 +619,90 @@ body > footer { flex: 0 0 auto; padding: 5px 12px !important; font-size: 10px; }
 :focus-visible { outline: 2px solid var(--accent-light); outline-offset: 2px; }
 
 @media (max-width: 900px) {
-  #workspace { padding: 8px; }
+  html, body {
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+  .workspace-nav-bar {
+    top: 48px !important;
+  }
+  #workspace {
+    padding: 8px 10px 12px 10px !important;
+    height: auto !important;
+    min-height: calc(100dvh - 120px) !important;
+    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  #input-workspace, #schedule-workspace {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    gap: 12px !important;
+  }
+  #pdf-container {
+    overflow: visible !important;
+  }
+  #catalog-panel {
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    padding: 12px !important;
+    gap: 10px !important;
+    border-radius: 16px !important;
+  }
+  #catalog-list {
+    max-height: none !important;
+    overflow-y: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  #faculty-panel {
+    display: none !important;
+  }
+  .mobile-faculty-wrapper {
+    display: flex !important;
+  }
+  .mobile-remove-btn {
+    display: inline-flex !important;
+  }
+  #catalog-actions {
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 40 !important;
+    margin-left: -12px !important;
+    margin-right: -12px !important;
+    margin-bottom: -12px !important;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+    background: var(--bg-card) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-top: 1px solid var(--border-color) !important;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45) !important;
+    border-bottom-left-radius: 16px !important;
+    border-bottom-right-radius: 16px !important;
+  }
+  #btn-optimize-pdf {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    min-height: 38px !important;
+    font-size: 13.5px !important;
+    border-radius: 12px !important;
+  }
+  #catalog-actions > p {
+    display: none !important;
+  }
   body > header { padding: 8px !important; }
   body > header > div { gap: 8px; }
   body > footer { display: none; }
-  #catalog-panel { padding: 10px; }
   #empty-state { justify-content: flex-start; padding: 20px; }
-  #schedule-workspace { overflow: auto; }
+  #schedule-workspace { overflow: visible; }
 }
 @media (max-height: 700px) {
   #pdf-drop-card > :first-child, #catalog-actions > p { display: none; }
@@ -764,10 +862,12 @@ body[data-workspace="schedules"] #input-workspace { display: none; }
   #catalog-panel > :first-child { grid-column: 1; grid-row: 1; }
   #catalog-panel > :nth-child(2) { grid-column: 1; grid-row: 2; }
   #catalog-list { grid-column: 1; grid-row: 3; }
-  #faculty-panel { grid-column: 2; grid-row: 1 / 4; border-top: 0; border-left: 1px solid var(--border-color); padding: 0 0 0 20px; }
+  #faculty-panel { grid-column: 2; grid-row: 1 / 4; border-top: 0; border-left: 1px solid var(--border-color); padding: 0 0 0 20px; display: flex !important; }
   #catalog-actions { grid-column: 1 / -1; grid-row: 4; align-items: center; }
   #btn-optimize-pdf { max-width: 420px; }
   #course-list-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-content: start; }
+  .mobile-faculty-wrapper, .mobile-remove-btn { display: none !important; }
+  #catalog-list .catalog-course-item { padding: 10px 14px; }
 }
 
 /* ==========================================================================
@@ -837,10 +937,11 @@ button:active:not(:disabled),
     padding: 12px;
   }
   #catalog-list {
-    max-height: 38vh;
+    max-height: none !important;
+    overflow-y: visible !important;
   }
   #selected-courses {
-    max-height: 30vh;
+    max-height: none !important;
   }
   #calendar-scroll {
     -webkit-overflow-scrolling: touch;
@@ -872,3 +973,96 @@ button:active:not(:disabled),
 [data-theme="light"] .text-orange-500 { color: #C2410C; }
 [data-theme="dark"] .text-orange-400,
 [data-theme="dark"] .text-orange-500 { color: #FB923C; }
+
+/* Mobile-only navigation drawer and viewport-anchored primary action. */
+#mobile-menu-open, .mobile-control-label { display: none; }
+#mobile-menu { color: var(--text-primary); background: var(--bg-secondary); border: 0; }
+#mobile-menu:not([open]) { display: none; }
+@media (max-width: 900px) {
+  #mobile-menu-open { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; height: 44px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-subtle); margin-left: auto; }
+  body > header nav[aria-label="Optimization Steps"], #btn-routine-dropdown { display: none !important; }
+  body > header { position: sticky; top: 0; }
+  .workspace-nav-bar { top: 61px !important; padding: 6px 10px; }
+  .workspace-nav-bar > div, .workspace-nav-bar nav { width: 100%; }
+  .workspace-nav-bar nav { display: flex; gap: 6px; }
+  .workspace-tab { flex: 1; justify-content: center; min-height: 42px; padding: 8px; font-size: 12px; }
+  .workspace-nav-bar > div > .relative { display: none; }
+  #mobile-menu { position: fixed; inset: 0 0 0 auto; margin: 0; width: min(360px, 90vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); overflow-y: auto; overscroll-behavior: contain; box-shadow: -12px 0 40px #0005; }
+  #mobile-menu::backdrop { background: rgb(0 0 0 / .55); }
+  body.mobile-menu-open { overflow: hidden !important; }
+  .mobile-menu-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .mobile-menu-heading h2 { font-size: 18px; font-weight: 800; }
+  #mobile-menu-close { width: 44px; height: 44px; border-radius: 10px; background: var(--bg-subtle); }
+  #mobile-menu-content { display: flex; flex-direction: column; gap: 20px; }
+  #mobile-menu #header-secondary-actions { display: grid; gap: 8px; }
+  #mobile-menu #header-secondary-actions > * { display: flex !important; justify-content: flex-start; min-height: 44px; gap: 12px; padding: 10px 12px; }
+  .mobile-control-label { display: inline; font-size: 13px; }
+  #mobile-menu #routine-dropdown-menu { display: flex !important; position: static; width: 100%; max-width: none; margin: 0; padding: 12px; box-shadow: none; backdrop-filter: none; animation: none; }
+  #mobile-menu #routine-dropdown-menu button, #mobile-menu #routine-dropdown-menu a { min-height: 42px; }
+  #mobile-action-dock { position: fixed; inset: auto 0 0; z-index: 45; padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); background: var(--bg-secondary); border-top: 1px solid var(--border-color); box-shadow: 0 -4px 18px #0002; }
+  #mobile-action-dock #catalog-actions { position: static !important; margin: 0 !important; padding: 0 !important; background: transparent !important; backdrop-filter: none !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+  #mobile-action-dock #catalog-actions[hidden] { display: none !important; }
+  #mobile-action-dock #btn-optimize-pdf, #mobile-action-dock #btn-optimize { min-height: 46px !important; width: 100%; max-width: none; margin: 0; }
+  body[data-workspace="courses"] #workspace { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+@media (max-width: 900px) {
+  html, body { scroll-padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
+  .catalog-course-item, #course-list-container > * { scroll-margin-bottom: 90px; }
+}
+
+/* Avoid costly off-screen painting while keeping the complete course list. */
+.catalog-course-item { content-visibility: auto; contain-intrinsic-size: auto 80px; }
+.catalog-course-item.active-course { content-visibility: visible; }
+@media (pointer: coarse) {
+  .faculty-pill, .filter-chip, .mobile-remove-btn,
+  #btn-clear-selected, #page-prev, #page-next, #modal-close,
+  #option-selector-container > button { min-height: 44px; min-width: 44px; }
+  .mobile-remove-btn { align-items: center; justify-content: center; }
+  .catalog-course-item, .faculty-pill, .filter-chip { transition: background-color .12s, border-color .12s; }
+  #catalog-panel, .catalog-course-item { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .pulse-ready { animation: none; }
+}
+@media (hover: none) {
+  .class-block-horizontal:hover, button:active:not(:disabled),
+  .catalog-course-item:active, .filter-chip:active, .faculty-pill:active { transform: none; }
+  .btn-glow::after { display: none; }
+  button:active:not(:disabled), .faculty-pill:active { filter: brightness(.92); }
+}
+@media (max-width: 900px) {
+  #catalog-search, .course-name-input, .course-text-input { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+#schedule-preferences { flex: 0 0 auto; padding: 10px 12px; max-height: 220px; overflow: auto; }
+#schedule-preferences summary { cursor: pointer; font-size: 12px; font-weight: 700; }
+#preferences-summary { color: var(--accent-light); font-weight: 500; margin-left: 8px; }
+.preference-fields { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-top: 12px; }
+.preference-fields label { display: flex; flex: 1; min-width: 140px; flex-direction: column; gap: 6px; font-size: 12px; }
+.preference-fields input, .preference-fields select, #clear-time-preferences { min-height: 42px; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-primary); }
+#priority-help { font-size: 11px; color: var(--text-secondary); margin-top: 8px; }
+#preference-report { padding: 10px 12px; font-size: 12px; max-height: 130px; overflow-y: auto; flex-shrink: 0; }
+#preference-report.preference-alternative { border-color: var(--accent); }
+#preference-report-list { padding-left: 18px; list-style: disc; color: var(--text-secondary); }
+#preference-report-list li { margin-top: 6px; }
+@media (max-width: 900px) {
+  #schedule-preferences { max-height: none; }
+  #preferences-summary { display: block; margin-left: 0; margin-top: 4px; }
+  .preference-fields input, .preference-fields select { font-size: 16px; }
+}
+
+/* All scheduling constraints share one compact, scrollable disclosure. */
+#schedule-preferences { max-height: min(320px, 42dvh); }
+#constraint-faculty-summary { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-color); }
+#constraint-faculty-summary h3 { font-size: 12px; font-weight: 700; }
+.constraint-hint { font-size: 11px; color: var(--text-muted); margin: 4px 0 8px; }
+#constraint-faculty-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; font-size: 12px; color: var(--text-secondary); }
+.constraint-faculty-row { padding: 8px; border-radius: 8px; background: var(--bg-subtle); min-width: 0; }
+.constraint-faculty-row strong { display: block; font-size: 11px; color: var(--text-primary); overflow-wrap: anywhere; }
+.constraint-faculty-names { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.constraint-faculty-names span { padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 6px; overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  #schedule-preferences { max-height: none; }
+  #constraint-faculty-list { grid-template-columns: minmax(0, 1fr); }
+}
