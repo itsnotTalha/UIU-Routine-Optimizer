@@ -2,7 +2,7 @@
   "version": 2,
   "functions": {
     "api/index.py": {
-      "includeFiles": "{backend/**,public/**}",
+      "includeFiles": "{backend/**,public/**,routines/**}",
       "maxDuration": 30
     }
   },

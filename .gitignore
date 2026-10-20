@@ -30,6 +30,7 @@ Thumbs.db
 # Misc
 *.log
 .env
-# Uploaded routine catalogs (preserve bundled demo catalog)
+# Uploaded routine catalogs (preserve bundled demo catalog and default)
 backend/catalogs/*
 !backend/catalogs/bad7bfec25dc43f29073f6bffaae5ad0.json
+!backend/catalogs/default.json

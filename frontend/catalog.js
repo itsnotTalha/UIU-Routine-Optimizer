@@ -17,6 +17,28 @@ const pdfFileName = document.getElementById('pdf-file-name');
 const pdfFileStats = document.getElementById('pdf-file-stats');
 const btnChangePdf = document.getElementById('btn-change-pdf');
 const btnClearSelected = document.getElementById('btn-clear-selected');
+const pdfProgressOverlay = document.getElementById('pdf-progress-overlay');
+const progressBar = document.getElementById('progress-bar');
+const progressTitle = document.getElementById('progress-status-title');
+const progressDesc = document.getElementById('progress-status-desc');
+const pdfOriginBadge = document.getElementById('pdf-origin-badge');
+const btnRevertDefault = document.getElementById('btn-revert-default');
+const routineSourceBadge = document.getElementById('routine-source-badge');
+
+function showProgress(title, desc, percent) {
+  if (pdfDropzone) pdfDropzone.classList.add('hidden');
+  if (pdfActiveCard) pdfActiveCard.classList.add('hidden');
+  if (pdfProgressOverlay) {
+    pdfProgressOverlay.classList.remove('hidden');
+    if (progressTitle) progressTitle.textContent = title;
+    if (progressDesc) progressDesc.textContent = desc;
+    if (progressBar) progressBar.style.width = `${Math.min(100, Math.max(5, percent))}%`;
+  }
+}
+
+function hideProgress() {
+  if (pdfProgressOverlay) pdfProgressOverlay.classList.add('hidden');
+}
 
 function updateStepper(step) {
   const s1 = document.getElementById('step-nav-1');
@@ -134,14 +156,42 @@ function renderProgramFilters() {
 }
 
 function showCatalog() {
+  hideProgress();
   document.getElementById('catalog-panel').hidden = false;
   const count = catalog.courses.reduce((n, c) => n + c.sections.length, 0);
   
   if (pdfActiveCard && pdfDropzone) {
     pdfDropzone.classList.add('hidden');
     pdfActiveCard.classList.remove('hidden');
-    if (pdfFileName) pdfFileName.textContent = catalog.filename || 'routine.pdf';
-    if (pdfFileStats) pdfFileStats.textContent = `${catalog.courses.length} courses · ${count} sections imported`;
+    if (pdfFileName) {
+      pdfFileName.textContent = catalog.filename || (catalog.is_default || catalog.id === 'default' ? 'UIU Routine (Fall 2026)' : 'routine.pdf');
+    }
+    if (pdfFileStats) {
+      pdfFileStats.textContent = `${catalog.courses.length} courses · ${count} sections imported`;
+    }
+    const isDefaultRoutine = Boolean(catalog.is_default || catalog.id === 'default');
+    if (pdfOriginBadge) {
+      if (isDefaultRoutine) {
+        pdfOriginBadge.textContent = 'Official';
+        pdfOriginBadge.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
+      } else {
+        pdfOriginBadge.textContent = 'Custom';
+        pdfOriginBadge.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 border border-orange-500/30';
+      }
+    }
+    if (btnRevertDefault) {
+      if (isDefaultRoutine) {
+        btnRevertDefault.classList.add('hidden');
+      } else {
+        btnRevertDefault.classList.remove('hidden');
+      }
+    }
+    if (routineSourceBadge) {
+      routineSourceBadge.textContent = isDefaultRoutine ? 'Pre-Loaded' : 'Custom PDF';
+      routineSourceBadge.className = isDefaultRoutine 
+        ? 'text-fluid-2xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+        : 'text-fluid-2xs font-bold px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20';
+    }
   }
 
   importStatus.textContent = ''; // The active-file banner already shows the import summary.
@@ -547,22 +597,50 @@ pdfInput.addEventListener('change', async () => {
   pdfInput.disabled = true;
   pdfButton.disabled = true;
   const version = ++requestVersion;
-  importStatus.textContent = 'Parsing routine PDF tables…';
+
+  // Show animated progress bar
+  showProgress('Uploading Custom Routine PDF...', `Reading ${file.name} (${(file.size / (1024 * 1024)).toFixed(1)} MB)...`, 20);
+
+  let progress = 20;
+  const progressTimer = setInterval(() => {
+    if (progress < 85) {
+      progress += Math.floor(Math.random() * 8) + 4;
+      if (progressBar) progressBar.style.width = `${progress}%`;
+      if (progress > 45 && progressTitle) {
+        progressTitle.textContent = 'Parsing timetable & room schedules...';
+        progressDesc.textContent = 'Extracting course offerings and faculty assignments...';
+      }
+    }
+  }, 200);
+
   const form = new FormData();
   form.append('file', file);
   try {
     const response = await fetch('/api/catalogs/import', {method: 'POST', body: form});
+    clearInterval(progressTimer);
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || 'Import failed.');
     if (version !== requestVersion) return;
-    catalog = data;
-    selectedCourses = new Map();
-    searchInput.value = '';
-    activeProgramFilter = '';
-    invalidateCatalogResults();
-    persistCatalog();
-    showCatalog();
+
+    showProgress('Ready!', 'Custom routine imported successfully', 100);
+    setTimeout(() => {
+      catalog = data;
+      catalog.is_default = false;
+      selectedCourses = new Map();
+      searchInput.value = '';
+      activeProgramFilter = '';
+      invalidateCatalogResults();
+      persistCatalog();
+      showCatalog();
+    }, 300);
   } catch (error) {
+    clearInterval(progressTimer);
+    hideProgress();
+    if (catalog) {
+      pdfActiveCard.classList.remove('hidden');
+    } else {
+      pdfDropzone.classList.remove('hidden');
+    }
     importStatus.textContent = `${error.message} ${catalog ? 'Your previous routine catalog is still available.' : ''}`;
   } finally {
     pdfInput.disabled = false;
@@ -696,21 +774,69 @@ document.getElementById('page-prev').onclick = () => fetchCatalogSchedules(windo
 document.getElementById('page-next').onclick = () => fetchCatalogSchedules(window.scheduleOffset + 20);
 searchInput.oninput = () => { if (catalog) renderCatalogList(); };
 
-// Restore saved catalog on reload
-(async function restoreCatalog() {
-  const version = requestVersion;
+if (btnRevertDefault) {
+  btnRevertDefault.addEventListener('click', async () => {
+    localStorage.removeItem('uiu-pdf-selection');
+    selectedCourses.clear();
+    await loadDefaultRoutine();
+  });
+}
+
+async function loadDefaultRoutine() {
+  const version = ++requestVersion;
+  showProgress('Loading Official Routine...', 'Fetching pre-loaded UIU routine (Fall 2026)...', 35);
+  let progress = 35;
+  const timer = setInterval(() => {
+    if (progress < 90) {
+      progress += 12;
+      if (progressBar) progressBar.style.width = `${progress}%`;
+    }
+  }, 120);
+
   try {
-    const saved = JSON.parse(localStorage.getItem('uiu-pdf-selection') || 'null');
-    if (!saved) return;
-    const response = await fetch(`/api/catalogs/${encodeURIComponent(saved.id)}`);
-    if (!response.ok) throw new Error('Saved PDF routine is unavailable. Please upload it again.');
+    const response = await fetch('/api/catalogs/default');
+    clearInterval(timer);
+    if (!response.ok) throw new Error('Official routine catalog is currently unavailable.');
     const data = await response.json();
     if (version !== requestVersion) return;
     catalog = data;
-    document.getElementById('campus-days').value = [3, 4, 5].includes(saved.campus_days) ? String(saved.campus_days) : '';
-    selectedCourses = new Map(saved.selections.filter(s => catalog.courses.some(c => c.id === s.course_id)).map(s => [s.course_id, s.faculties]));
-    showCatalog();
-  } catch (error) {
-    if (version === requestVersion) importStatus.textContent = error.message;
+    catalog.is_default = true;
+    showProgress('Loaded!', 'All 107 courses ready', 100);
+    setTimeout(() => {
+      showCatalog();
+    }, 200);
+  } catch (err) {
+    clearInterval(timer);
+    hideProgress();
+    if (pdfDropzone) pdfDropzone.classList.remove('hidden');
+    importStatus.textContent = 'Could not pre-load official routine. Please upload a PDF routine.';
   }
+}
+
+// Restore saved catalog on reload, or automatically load default routine
+(async function initRoutine() {
+  const version = requestVersion;
+  try {
+    const saved = JSON.parse(localStorage.getItem('uiu-pdf-selection') || 'null');
+    if (saved && saved.id) {
+      showProgress('Restoring Routine...', 'Loading your previously selected courses...', 40);
+      const endpoint = saved.id === 'default' ? '/api/catalogs/default' : `/api/catalogs/${encodeURIComponent(saved.id)}`;
+      const response = await fetch(endpoint);
+      if (response.ok) {
+        const data = await response.json();
+        if (version !== requestVersion) return;
+        catalog = data;
+        if (saved.id === 'default') catalog.is_default = true;
+        document.getElementById('campus-days').value = [3, 4, 5].includes(saved.campus_days) ? String(saved.campus_days) : '';
+        selectedCourses = new Map((saved.selections || []).filter(s => catalog.courses.some(c => c.id === s.course_id)).map(s => [s.course_id, s.faculties]));
+        showCatalog();
+        return;
+      }
+    }
+  } catch (_) {
+    // If error in saved parsing, fallback to default routine
+  }
+
+  // Pre-load official routine automatically for immediate zero-click readiness!
+  await loadDefaultRoutine();
 })();

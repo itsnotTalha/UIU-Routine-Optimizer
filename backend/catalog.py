@@ -12,10 +12,64 @@ from backend.pdf_import import import_pdf
 router = APIRouter()
 CATALOG_DIR = Path(__file__).parent / 'catalogs'
 TMP_CATALOG_DIR = Path('/tmp/catalogs')
+ROUTINES_DIR = Path(__file__).parent.parent / 'routines'
+BACKEND_ROUTINES_DIR = Path(__file__).parent / 'routines'
 MAX_UPLOAD = 20 * 1024 * 1024
 
 
+def get_default_catalog():
+    # 1. Check in TMP_CATALOG_DIR
+    tmp_path = TMP_CATALOG_DIR / 'default.json'
+    if tmp_path.exists():
+        try:
+            return json.loads(tmp_path.read_text(encoding='utf-8'))
+        except Exception:
+            pass
+
+    # 2. Check bundled default.json
+    bundled_path = CATALOG_DIR / 'default.json'
+    if bundled_path.exists():
+        try:
+            return json.loads(bundled_path.read_text(encoding='utf-8'))
+        except Exception:
+            pass
+
+    # 3. Check routines directories for any .pdf routine
+    for rdir in (ROUTINES_DIR, BACKEND_ROUTINES_DIR):
+        if rdir.exists():
+            pdfs = sorted(rdir.glob('*.pdf'))
+            if pdfs:
+                latest_pdf = pdfs[-1]
+                try:
+                    catalog = import_pdf(latest_pdf.read_bytes())
+                    catalog['id'] = 'default'
+                    catalog['filename'] = latest_pdf.name
+                    catalog['is_default'] = True
+                    try:
+                        CATALOG_DIR.mkdir(parents=True, exist_ok=True)
+                        (CATALOG_DIR / 'default.json').write_text(json.dumps(catalog, ensure_ascii=False), encoding='utf-8')
+                    except OSError:
+                        TMP_CATALOG_DIR.mkdir(parents=True, exist_ok=True)
+                        (TMP_CATALOG_DIR / 'default.json').write_text(json.dumps(catalog, ensure_ascii=False), encoding='utf-8')
+                    return catalog
+                except Exception:
+                    pass
+
+    # 4. Fallback: check any .json in CATALOG_DIR
+    if CATALOG_DIR.exists():
+        json_files = sorted(CATALOG_DIR.glob('[a-f0-9]*.json'), key=lambda p: p.stat().st_mtime, reverse=True)
+        if json_files:
+            cat = json.loads(json_files[0].read_text(encoding='utf-8'))
+            cat['id'] = 'default'
+            cat['is_default'] = True
+            return cat
+
+    raise HTTPException(404, 'No default routine catalog found. Please upload a PDF.')
+
+
 def load_catalog(catalog_id):
+    if catalog_id == 'default':
+        return get_default_catalog()
     if not re.fullmatch(r'[a-f0-9]{32}', catalog_id):
         raise HTTPException(404, 'Catalog not found. Upload the PDF again.')
     # Check /tmp first (for newly uploaded files in serverless like Vercel)
@@ -56,6 +110,11 @@ def upload_catalog(file: UploadFile):
         return catalog
     finally:
         file.file.close()
+
+
+@router.get('/catalogs/default')
+def get_default_catalog_endpoint():
+    return get_default_catalog()
 
 
 @router.get('/catalogs/{catalog_id}')
