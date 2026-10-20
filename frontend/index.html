@@ -60,7 +60,7 @@
       <nav aria-label="Optimization Steps" class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--bg-subtle)] border border-brandBorder text-fluid-xs">
         <div id="step-nav-1" class="step-item active flex items-center gap-1.5 font-medium px-2 py-0.5 rounded-lg">
           <span class="step-badge h-5 w-5 rounded-full bg-orange-600 text-white text-fluid-2xs font-bold flex items-center justify-center">1</span>
-          <span>Upload PDF</span>
+          <span>Routine</span>
         </div>
         <i class="fa-solid fa-chevron-right text-fluid-2xs text-[var(--text-muted)] opacity-60"></i>
         <div id="step-nav-2" class="step-item text-[var(--text-muted)] flex items-center gap-1.5 font-medium px-2 py-0.5 rounded-lg">
@@ -133,12 +133,27 @@
           <div class="flex items-center justify-between">
             <h2 class="text-fluid-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
               <span class="h-5 w-5 rounded-full bg-orange-500/20 text-orange-400 text-fluid-2xs flex items-center justify-center font-bold">1</span>
-              Import Routine PDF
+              Routine Catalog
             </h2>
-            <span class="text-fluid-2xs text-[var(--text-muted)] font-semibold">UIU Course Offerings</span>
+            <span id="routine-source-badge" class="text-fluid-2xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Pre-Loaded</span>
           </div>
 
-          <!-- Dropzone -->
+          <!-- Animated Uploading & Loading Progress State (Shown during PDF parsing or pre-loading) -->
+          <div id="pdf-progress-overlay" class="hidden rounded-xl bg-[var(--bg-subtle)] border border-orange-500/30 p-5 flex flex-col items-center justify-center gap-3 transition-all">
+            <div class="relative flex items-center justify-center">
+              <div class="upload-ring"></div>
+              <i class="fa-solid fa-file-pdf text-orange-500 text-lg absolute"></i>
+            </div>
+            <div class="w-full text-center">
+              <p id="progress-status-title" class="text-fluid-xs font-bold text-[var(--text-primary)]">Loading Routine...</p>
+              <p id="progress-status-desc" class="text-fluid-2xs text-[var(--text-muted)] mt-0.5">Preparing courses and class slots</p>
+            </div>
+            <div class="w-full max-w-xs progress-bar-container">
+              <div id="progress-bar" class="progress-bar-fill" style="width: 35%;"></div>
+            </div>
+          </div>
+
+          <!-- Dropzone (Hidden when routine is active or loading) -->
           <div id="pdf-dropzone" class="dropzone-box rounded-xl p-6 flex flex-col items-center justify-center text-center gap-2.5 cursor-pointer group">
             <input id="routine-pdf" type="file" accept="application/pdf,.pdf" class="hidden">
             <div class="h-12 w-12 rounded-full bg-orange-500/15 group-hover:bg-orange-500/25 flex items-center justify-center text-orange-500 transition-transform group-hover:scale-110">
@@ -148,24 +163,32 @@
               <p class="text-fluid-sm font-bold text-[var(--text-primary)]">
                 <span class="text-orange-500 underline decoration-orange-500/40 underline-offset-2">Click to upload</span> or drag &amp; drop
               </p>
-              <p class="text-fluid-xs text-[var(--text-muted)] mt-0.5">Official UIU class routine PDF (up to 20 MB)</p>
+              <p class="text-fluid-xs text-[var(--text-muted)] mt-0.5">Custom UIU routine PDF (up to 20 MB)</p>
             </div>
           </div>
 
           <!-- Active File Banner -->
-          <div id="pdf-active-card" class="hidden rounded-xl bg-[var(--bg-subtle)] border border-orange-500/40 p-3.5 flex items-center justify-between gap-3">
+          <div id="pdf-active-card" class="hidden rounded-xl bg-[var(--bg-subtle)] border border-brandBorder p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
             <div class="flex items-center gap-3 min-w-0">
               <div class="h-9 w-9 rounded-lg bg-emerald-500/20 text-emerald-500 flex items-center justify-center flex-shrink-0">
                 <i class="fa-solid fa-file-circle-check text-base"></i>
               </div>
               <div class="min-w-0">
-                <p id="pdf-file-name" class="text-fluid-xs font-bold text-[var(--text-primary)] truncate">routine.pdf</p>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <p id="pdf-file-name" class="text-fluid-xs font-bold text-[var(--text-primary)] truncate">routine.pdf</p>
+                  <span id="pdf-origin-badge" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Official</span>
+                </div>
                 <p id="pdf-file-stats" class="text-fluid-2xs font-semibold text-emerald-500">107 courses · 791 sections imported</p>
               </div>
             </div>
-            <button id="btn-change-pdf" class="px-2.5 py-1 text-fluid-2xs font-bold rounded-lg bg-[var(--pill-bg)] hover:bg-[var(--bg-card-hover)] text-[var(--text-primary)] border border-brandBorder whitespace-nowrap flex items-center gap-1.5 shadow-sm">
-              <i class="fa-solid fa-arrow-rotate-right text-xs"></i> Change
-            </button>
+            <div class="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
+              <button id="btn-revert-default" type="button" title="Switch back to official pre-loaded routine" class="hidden px-2.5 py-1.5 text-fluid-2xs font-bold rounded-lg bg-[var(--pill-bg)] hover:bg-[var(--bg-card-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-brandBorder whitespace-nowrap flex items-center gap-1.5 shadow-sm transition-all">
+                <i class="fa-solid fa-rotate-left text-xs"></i> Official Routine
+              </button>
+              <button id="btn-change-pdf" type="button" title="Upload a custom routine PDF" class="px-2.5 py-1.5 text-fluid-2xs font-bold rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 hover:text-orange-300 border border-orange-500/30 whitespace-nowrap flex items-center gap-1.5 shadow-sm transition-all">
+                <i class="fa-solid fa-cloud-arrow-up text-xs"></i> Custom PDF
+              </button>
+            </div>
           </div>
 
           <!-- Hidden status for test compatibility -->

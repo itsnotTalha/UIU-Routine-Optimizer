@@ -130,3 +130,11 @@ def test_manual_campus_days(api):
     payload = {'courses':[{'course_name':'Course', 'raw_text':'A\nTeacher\nMonday 10:00-11:00\nTuesday 10:00-11:00\nWednesday 10:00-11:00'}], 'campus_days':3}
     assert len(api.post('/api/optimize', json=payload).json()['schedules']) == 1
     assert api.post('/api/optimize', json={**payload, 'campus_days':4}).json()['schedules'] == []
+
+
+def test_get_default_catalog(api, tmp_path):
+    (tmp_path / 'default.json').write_text(json.dumps({'id': 'default', 'courses': []}), encoding='utf-8')
+    resp = api.get('/api/catalogs/default')
+    assert resp.status_code == 200
+    assert resp.json()['id'] == 'default'
+

@@ -21,11 +21,12 @@ Eliminate class clashes, minimize campus trips, and say goodbye to tedious manua
 Every trimester at UIU, students receive a massive course-offering PDF with **hundreds of sections, overlapping time slots, and multiple faculties**. Manually finding combinations that don't clash while avoiding 5-day campus commutes and 4-hour gaps between classes can take hours of trial and error.
 
 **UIU Routine Optimizer automates this entire process in seconds:**
-1. 📄 **Imports your official UIU Routine PDF** directly.
-2. 🎯 Lets you pick courses and preferred faculties with **1-click chips**.
-3. ⚡ Calculates **every valid, zero-conflict weekly combination**.
-4. 🏆 **Ranks combinations** by fewest campus days, then least waiting time.
-5. 📅 Displays an **interactive weekly timetable** ready to export as a PNG image.
+1. ⚡ **Pre-loaded Official Routine**: Automatically loads the official UIU routine on page entrance—no upload required!
+2. 📄 **Custom PDF Support**: Upload your own department or trimester routine PDF anytime with animated progress tracking.
+3. 🎯 Lets you pick courses and preferred faculties with **1-click chips** and advanced acronym search (`AI`, `OOP`, `SPL`, `DLD`).
+4. ⚡ Calculates **every valid, zero-conflict weekly combination**.
+5. 🏆 **Ranks combinations** by fewest campus days, then least waiting time.
+6. 📅 Displays an **interactive weekly timetable** ready to export as a PNG image.
 
 ---
 
@@ -65,12 +66,12 @@ The entire application follows an intuitive **3-step guided flow**:
 
 ```mermaid
 flowchart LR
-    subgraph Step1["Step 1: Routine Input"]
-        A["📄 Upload UIU Routine PDF<br/><i>(or click ⚡ Try Demo)</i>"]
+    subgraph Step1["Step 1: Routine Catalog"]
+        A["⚡ Official Routine Pre-loaded<br/><i>(or upload custom routine PDF)</i>"]
     end
 
     subgraph Step2["Step 2: Custom Selection"]
-        B["🔍 Search & Filter Courses<br/><i>(BSCSE, BSDS, BBA, etc.)</i>"]
+        B["🔍 Acronym Search & Filters<br/><i>(AI, OOP, SPL, BSCSE, etc.)</i>"]
         C["👨‍🏫 Select Faculty Preferences<br/><i>(All or specific teachers)</i>"]
     end
 
