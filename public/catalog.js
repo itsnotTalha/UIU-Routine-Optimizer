@@ -517,7 +517,7 @@ function renderCatalogList() {
   
   let candidates = catalog.courses;
   if (activeProgramFilter) {
-    candidates = candidates.filter(c => c.program === activeProgramFilter);
+    candidates = candidates.filter(c => c.program === activeProgramFilter || selectedCourses.has(c.id));
   }
 
   let matches = [];
@@ -525,10 +525,27 @@ function renderCatalogList() {
     matches = candidates
       .map(course => ({ course, score: scoreCourse(course, query) }))
       .filter(item => item.score > 0)
-      .sort((a, b) => b.score - a.score)
+      .sort((a, b) => {
+        const aSel = selectedCourses.has(a.course.id) ? 1 : 0;
+        const bSel = selectedCourses.has(b.course.id) ? 1 : 0;
+        if (aSel !== bSel) return bSel - aSel;
+        return b.score - a.score;
+      })
       .map(item => item.course);
   } else {
-    matches = candidates;
+    // Automatically place all selected courses on top for instant access
+    const selected = [];
+    const unselected = [];
+    for (const course of candidates) {
+      if (selectedCourses.has(course.id)) {
+        selected.push(course);
+      } else {
+        unselected.push(course);
+      }
+    }
+    const selectionOrder = [...selectedCourses.keys()];
+    selected.sort((a, b) => selectionOrder.indexOf(a.id) - selectionOrder.indexOf(b.id));
+    matches = [...selected, ...unselected];
   }
 
   document.getElementById('catalog-count').textContent = `${matches.length} courses shown · ${selectedCourses.size} selected`;
@@ -537,10 +554,35 @@ function renderCatalogList() {
     btnClearSearch.classList.toggle('hidden', !query);
   }
 
+  let renderedSelectedHeader = false;
+  let renderedAvailableHeader = false;
+
   for (const course of matches) {
     const isSelected = selectedCourses.has(course.id);
     const acronyms = getCourseAcronyms(course.title);
     const matchedAcronym = query && (acronyms.includes(query) || (COURSE_SYNONYMS[query] && COURSE_SYNONYMS[query].some(s => course.title.toLowerCase().includes(s))));
+
+    if (!query && selectedCourses.size > 0) {
+      if (isSelected && !renderedSelectedHeader) {
+        const header = document.createElement('div');
+        header.className = 'catalog-section-header flex items-center justify-between text-fluid-2xs font-extrabold uppercase tracking-wider text-orange-500 pt-1 pb-0.5 px-1';
+        header.innerHTML = `
+          <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-orange-500 text-xs"></i> Selected Courses (${selectedCourses.size})</span>
+          <span class="text-fluid-2xs text-[var(--text-muted)] font-medium normal-case">Configured on top</span>
+        `;
+        fragment.appendChild(header);
+        renderedSelectedHeader = true;
+      } else if (!isSelected && !renderedAvailableHeader) {
+        const header = document.createElement('div');
+        header.className = 'catalog-section-header flex items-center justify-between text-fluid-2xs font-extrabold uppercase tracking-wider text-[var(--text-muted)] pt-3 pb-0.5 px-1 border-t border-brandBorder/60';
+        header.innerHTML = `
+          <span class="flex items-center gap-1.5"><i class="fa-solid fa-layer-group text-xs"></i> Available Courses</span>
+          <span class="text-fluid-2xs text-[var(--text-muted)] font-medium normal-case">${candidates.length - selectedCourses.size} courses</span>
+        `;
+        fragment.appendChild(header);
+        renderedAvailableHeader = true;
+      }
+    }
 
     const renderKey = JSON.stringify([catalog.id, selectedCourses.get(course.id) ?? null, matchedAcronym ? query : '']);
     const previous = existing.get(course.id);
@@ -594,6 +636,7 @@ function renderCatalogList() {
     card.addEventListener('click', (e) => {
       // Prevent toggling when clicking inside mobile faculty preference pills
       if (e.target.closest('.mobile-faculty-wrapper')) return;
+      const willSelect = !selectedCourses.has(course.id);
       if (selectedCourses.has(course.id)) {
         selectedCourses.delete(course.id);
       } else {
@@ -607,6 +650,12 @@ function renderCatalogList() {
       persistCatalog();
       renderCatalogList();
       renderSelectedCourses();
+      if (willSelect) {
+        const targetCard = list.querySelector(`[data-course-id="${course.id}"]`);
+        if (targetCard) {
+          targetCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
     });
 
     card.appendChild(topRow);
