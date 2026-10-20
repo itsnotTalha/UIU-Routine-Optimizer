@@ -31,7 +31,7 @@ class SchedulePreferences(BaseModel):
         return self
 
 class OptimizeRequest(SchedulePreferences):
-    campus_days: Optional[Literal[3, 4, 5]] = None
+    campus_days: Optional[Literal[2, 3, 4, 5]] = None
     courses: List[CourseInput]
 
 class CourseSectionMapping(BaseModel):
@@ -53,7 +53,7 @@ class CatalogSelection(BaseModel):
     faculties: List[str] = Field(default_factory=list)
 
 class CatalogOptimizeRequest(SchedulePreferences):
-    campus_days: Optional[Literal[3, 4, 5]] = None
+    campus_days: Optional[Literal[2, 3, 4, 5]] = None
     catalog_id: str
     selections: List[CatalogSelection] = Field(..., min_length=1, max_length=12)
     offset: int = Field(default=0, ge=0)

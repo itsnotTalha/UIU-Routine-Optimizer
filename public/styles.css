@@ -1062,41 +1062,128 @@ button:active:not(:disabled),
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 
-#schedule-preferences { flex: 0 0 auto; padding: 10px 12px; max-height: 220px; overflow: auto; }
-#schedule-preferences summary { cursor: pointer; font-size: 12px; font-weight: 700; }
-#preferences-summary { color: var(--accent-light); font-weight: 500; margin-left: 8px; }
-.preference-fields { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-top: 12px; }
-.preference-fields label { display: flex; flex: 1; min-width: 140px; flex-direction: column; gap: 6px; font-size: 12px; }
-.preference-fields input, .preference-fields select, #clear-time-preferences { min-height: 42px; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-primary); }
-#priority-help { font-size: 11px; color: var(--text-secondary); margin-top: 8px; }
-#preference-report { padding: 10px 12px; font-size: 12px; max-height: 130px; overflow-y: auto; flex-shrink: 0; }
-#preference-report.preference-alternative { border-color: var(--accent); }
-#preference-report-list { padding-left: 18px; list-style: disc; color: var(--text-secondary); }
-#preference-report-list li { margin-top: 6px; }
-@media (max-width: 900px) {
-  #schedule-preferences { max-height: none; }
-  #preferences-summary { display: block; margin-left: 0; margin-top: 4px; }
-  .preference-fields input, .preference-fields select { font-size: 16px; }
+#schedule-preferences {
+  flex: 0 0 auto;
+  max-height: none !important;
+  overflow: visible !important;
+  padding: 0 !important;
 }
-
-/* All scheduling constraints share one compact, scrollable disclosure. */
-#schedule-preferences { max-height: min(320px, 42dvh); }
-#constraint-faculty-summary { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-color); }
-#constraint-faculty-summary h3 { font-size: 12px; font-weight: 700; }
-.constraint-hint { font-size: 11px; color: var(--text-muted); margin: 4px 0 8px; }
-#constraint-faculty-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; font-size: 12px; color: var(--text-secondary); }
-.constraint-faculty-row { padding: 8px; border-radius: 8px; background: var(--bg-subtle); min-width: 0; }
-.constraint-faculty-row strong { display: block; font-size: 11px; color: var(--text-primary); overflow-wrap: anywhere; }
-.constraint-faculty-names { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-.constraint-faculty-names span { padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 6px; overflow-wrap: anywhere; }
-
-/* Constraints section redesign: sub-groups */
-#schedule-preferences .preference-fields > div:first-child { border-top: none; }
-#global-faculty-priority-label[style*="display: none"] { display: none !important; }
-
+#schedule-preferences summary {
+  cursor: pointer;
+  list-style: none;
+}
+#schedule-preferences summary::-webkit-details-marker {
+  display: none;
+}
+#preferences-summary {
+  color: var(--accent-light);
+  font-weight: 600;
+}
+.preference-fields {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  gap: 0 !important;
+  margin-top: 0 !important;
+  align-items: stretch !important;
+}
+.preference-fields > div {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+.preference-fields label {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  font-size: 12px !important;
+}
+.preference-fields select,
+.preference-fields input {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
 @media (max-width: 900px) {
-  #schedule-preferences { max-height: none; }
-  #constraint-faculty-list { grid-template-columns: minmax(0, 1fr); }
+  .preference-fields select,
+  .preference-fields input {
+    font-size: 16px !important;
+  }
+}
+#priority-help {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+#preference-report {
+  padding: 10px 12px;
+  font-size: 12px;
+  max-height: 130px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+#preference-report.preference-alternative {
+  border-color: var(--accent);
+}
+#preference-report-list {
+  padding-left: 18px;
+  list-style: disc;
+  color: var(--text-secondary);
+}
+#preference-report-list li {
+  margin-top: 6px;
+}
+#constraint-faculty-summary {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
+}
+#constraint-faculty-summary h3 {
+  font-size: 12px;
+  font-weight: 700;
+}
+.constraint-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 4px 0 8px;
+}
+#constraint-faculty-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.constraint-faculty-row {
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--bg-subtle);
+  min-width: 0;
+}
+.constraint-faculty-row strong {
+  display: block;
+  font-size: 11px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.constraint-faculty-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.constraint-faculty-names span {
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+#global-faculty-priority-label[style*="display: none"] {
+  display: none !important;
+}
+@media (max-width: 900px) {
+  #constraint-faculty-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 

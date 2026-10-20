@@ -1211,7 +1211,7 @@ async function loadDefaultRoutine() {
         catalog = data;
         if (saved.id === 'default') catalog.is_default = true;
         restoreSchedulingPreferences(saved);
-        document.getElementById('campus-days').value = [3, 4, 5].includes(saved.campus_days) ? String(saved.campus_days) : '';
+        document.getElementById('campus-days').value = [2, 3, 4, 5].includes(saved.campus_days) ? String(saved.campus_days) : '';
         refreshPreferenceSummary();
         selectedCourses = new Map((saved.selections || []).filter(s => catalog.courses.some(c => c.id === s.course_id)).map(s => [s.course_id, s.faculties]));
         showCatalog();
