@@ -42,7 +42,7 @@ def ranked_schedules(courses, campus_days, preferences=None):
             _SCHEDULE_CACHE.move_to_end(key)
             return _SCHEDULE_CACHE[key][1]
     candidates = filter_strict(courses, preferences) if preferences and preferences.get('priority') == 'strict' else courses
-    schedules = solve_schedules(candidates, max_results=100_000, max_nodes=2_000_000, campus_days=campus_days, max_classes_per_day=(preferences or {}).get('max_classes_per_day'))
+    schedules = solve_schedules(candidates, max_results=100_000, max_nodes=2_000_000, campus_days=campus_days, max_classes_per_day=(preferences or {}).get('max_classes_per_day'), fixed_slots=(preferences or {}).get('fixed_slots'))
     if preferences and preferences.get('priority') == 'strict' and preferences.get('min_gap'):
         schedules = [s for s in schedules if gap_violations(s, preferences['min_gap'])[0] == 0]
     schedules.sort(key=(lambda s: preference_score(s, preferences)) if preferences else schedule_score)
@@ -177,6 +177,7 @@ def optimize_catalog(request: CatalogOptimizeRequest):
     available = {c['id']: c for c in catalog['courses']}
     courses, seen = [], set()
     preferences = dict(
+        fixed_slots=[slot.model_dump() for slot in request.fixed_slots],
         earliest_start=request.earliest_start,
         latest_end=request.latest_end,
         priority=request.priority,

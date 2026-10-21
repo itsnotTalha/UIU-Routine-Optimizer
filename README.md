@@ -262,3 +262,17 @@ Course and faculty priority is configured in Preferences. Drag course groups to 
 Preferences includes an optional **Maximum classes per day** limit. Each scheduled meeting (including a lab) counts once on its day; leave the field blank for no cap. Both optimize endpoints accept `max_classes_per_day` as a positive integer or `null`.
 
 When no routine fits, `daily_class_limit` in the response explains why and, when feasible, includes the smallest higher `suggested` limit that preserves the other active constraints. Suggestions do not change the saved preference. If another constraint prevents every routine, or the bounded search cannot verify a suggestion, the warning says so instead of inventing a number.
+
+### Pre-allocated FYDP and fixed slots
+
+Open **Preferences → Fixed slots / FYDP → Add FYDP / fixed slot**. Enter an optional label, day, start time, and end time, then apply preferences. Add a separate row for each meeting day. The default interval is Saturday, 08:30–11:00.
+
+Fixed slots are mandatory in both catalog and manual-entry optimization and appear in generated schedules. They count toward campus days and daily meeting limits, and minimum breaks apply around them. The preferred class-hours window applies only to regular courses. Touching intervals are allowed when no minimum break is set; overlapping fixed slots and overnight intervals are rejected. Resetting all preferences removes fixed slots. Catalog preferences, including fixed slots, are saved in the browser.
+
+Both optimization endpoints accept `fixed_slots`, for example:
+
+```json
+{"fixed_slots": [{"title": "CSE 4000A (FYDP-I)", "day": "Saturday", "start_time": 510, "end_time": 660}]}
+```
+
+Times are integer minutes from midnight. Omit `fixed_slots` for the existing behavior.

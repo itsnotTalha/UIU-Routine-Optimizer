@@ -22,7 +22,18 @@ def has_conflict(selected_sections: List[Dict[str, Any]], next_section: Dict[str
                     return True
     return False
 
-def solve_schedules(courses: List[Dict[str, Any]], max_results=None, max_nodes=None, campus_days=None, max_classes_per_day=None, accept_schedule=None, first_only=False) -> List[List[Dict[str, Any]]]:
+def fixed_courses(fixed_slots):
+    """Represent mandatory meetings using the existing schedule rendering format."""
+    def time_text(value):
+        return f"{value // 60:02}:{value % 60:02}"
+    return [dict(course_name=slot['title'], is_fixed=True, sections=[dict(
+        name='Fixed', faculty='Pre-allocated / blocked', slots=[dict(
+            day=slot['day'], start_mins=slot['start_time'], end_mins=slot['end_time'],
+            start_time=time_text(slot['start_time']), end_time=time_text(slot['end_time']))])])
+        for slot in (fixed_slots or [])]
+
+
+def solve_schedules(courses: List[Dict[str, Any]], max_results=None, max_nodes=None, campus_days=None, max_classes_per_day=None, accept_schedule=None, first_only=False, fixed_slots=None) -> List[List[Dict[str, Any]]]:
     """
     Finds all combinations of sections (one per course) that are conflict-free.
     
@@ -53,6 +64,7 @@ def solve_schedules(courses: List[Dict[str, Any]], max_results=None, max_nodes=N
       ...
     ]
     """
+    courses = fixed_courses(fixed_slots) + courses
     if not courses:
         return []
 
@@ -106,7 +118,8 @@ def solve_schedules(courses: List[Dict[str, Any]], max_results=None, max_nodes=N
             if not occupied & section_mask:
                 if max_classes_per_day is not None:
                     daily_counts.update(counts)
-                current_selection.append({'course_name': courses[course_idx]['course_name'], 'section': section})
+                current_selection.append({'course_name': courses[course_idx]['course_name'], 'section': section,
+                                          **({'is_fixed': True} if courses[course_idx].get('is_fixed') else {})})
                 backtrack(course_idx + 1, occupied | section_mask, days | section_days)
                 current_selection.pop()
                 if max_classes_per_day is not None:

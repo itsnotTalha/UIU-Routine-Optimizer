@@ -22,6 +22,8 @@ def penalties(schedule, preferences):
     faculty = preferences.get('faculties', {})
     mismatch = outside = 0
     for item in schedule:
+        if item.get('is_fixed'):
+            continue
         section = item['section']
         wanted = faculty.get(item['course_name'], [])
         mismatch += bool(wanted and section['faculty'] not in wanted)
@@ -89,6 +91,8 @@ def preference_report(schedule, preferences):
     latest = minutes(preferences.get('latest_end')) if preferences else None
     warnings = []
     for item in schedule:
+        if item.get('is_fixed'):
+            continue
         section = item['section']
         wanted = preferences.get('faculties', {}).get(item['course_name'], []) if preferences else []
         if wanted and section['faculty'] not in wanted:
@@ -120,7 +124,7 @@ def availability_notices(courses, preferences):
 def daily_class_limit_advice(courses, campus_days, preferences):
     """Find the smallest feasible cap without changing any other active constraint."""
     from collections import Counter
-    from backend.optimizer import solve_schedules
+    from backend.optimizer import solve_schedules, fixed_courses
 
     requested = preferences.get('max_classes_per_day')
     if requested is None:
@@ -131,15 +135,16 @@ def daily_class_limit_advice(courses, campus_days, preferences):
     def feasible(limit):
         return bool(solve_schedules(
             candidates, campus_days=campus_days, max_classes_per_day=limit,
+            fixed_slots=preferences.get('fixed_slots'),
             max_nodes=2_000_000, first_only=True,
             accept_schedule=(lambda s: gap_violations(s, min_gap)[0] == 0) if min_gap else None))
 
     advice = dict(requested=requested, suggested=None)
     upper = sum(max((max(Counter(slot['day'] for slot in sec['slots']).values(), default=0)
-                     for sec in c['sections']), default=0) for c in candidates)
+                     for sec in c['sections']), default=0) for c in candidates + fixed_courses(preferences.get('fixed_slots')))
     try:
         if upper <= requested or not feasible(upper):
-            advice['message'] = 'No routine satisfies your current filters. Increasing the daily class limit alone will not help; review your campus days, time window, breaks, or teacher choices.'
+            advice['message'] = 'No routine satisfies your current filters. Increasing the daily class limit alone will not help; review your fixed slots, campus days, time window, breaks, or teacher choices.'
             return advice
         lower = requested + 1
         while lower < upper:
