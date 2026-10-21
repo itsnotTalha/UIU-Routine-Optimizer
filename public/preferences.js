@@ -69,9 +69,28 @@ document.getElementById('add-fixed-slot').addEventListener('click', () => {
   preferencesChanged();
 });
 
+function getAllowedDays() {
+  return [...document.querySelectorAll('#allowed-days input:checked')].map(input => input.value);
+}
+
+function setAllowedDays(days = []) {
+  document.querySelectorAll('#allowed-days input').forEach(input => {
+    input.checked = days.includes(input.value);
+  });
+}
+
+document.getElementById('allowed-days').addEventListener('change', preferencesChanged);
+document.querySelectorAll('[data-allowed-days]').forEach(button => {
+  button.addEventListener('click', () => {
+    setAllowedDays(button.dataset.allowedDays.split(',').filter(Boolean));
+    preferencesChanged();
+  });
+});
+
 function getSchedulingPreferences() {
   const minGapVal = document.getElementById('min-gap-select')?.value;
   return {
+    allowed_days: getAllowedDays(),
     fixed_slots: readFixedSlots(),
     earliest_start: earliestInput?.value || null,
     latest_end: latestInput?.value || null,
@@ -112,6 +131,7 @@ function validateSchedulingPreferences() {
 
 function updateActiveFiltersBadge() {
   let count = readFixedSlots().length;
+  if (getAllowedDays().length) count++;
   if (document.getElementById('campus-days')?.value) count++;
   if (earliestInput?.value) count++;
   if (latestInput?.value) count++;
@@ -135,6 +155,8 @@ function refreshPreferenceSummary() {
   const {earliest_start, latest_end, min_gap, max_classes_per_day} = getSchedulingPreferences();
   const days = document.getElementById('campus-days')?.value;
   const parts = [];
+  const allowedDays = getAllowedDays();
+  if (allowedDays.length) parts.push(allowedDays.map(day => day.slice(0, 3)).join(' + '));
   const fixedCount = readFixedSlots().length;
   if (fixedCount) parts.push(`${fixedCount} fixed slot${fixedCount === 1 ? '' : 's'}`);
   if (days) parts.push(`${days} days/week`);
@@ -157,6 +179,7 @@ function refreshPreferenceSummary() {
 
 function restoreSchedulingPreferences(saved) {
   if (!saved) return;
+  setAllowedDays(saved.allowed_days || []);
   document.getElementById('fixed-slots-list').replaceChildren();
   document.getElementById('add-fixed-slot').disabled = false;
   for (const slot of (saved.fixed_slots || [])) addFixedSlot(slot);
@@ -440,6 +463,7 @@ function dailyLimitContext() {
 
 // Apply only the fields named by a verified suggestion.
 function applySuggestedChanges(changes) {
+  if (Object.hasOwn(changes, 'allowed_days')) setAllowedDays(changes.allowed_days);
   for (const [key, input, select] of [
     ['earliest_start', earliestInput, earliestSelect],
     ['latest_end', latestInput, latestSelect]
@@ -502,6 +526,7 @@ window.renderDailyLimitSuggestion = function(advice, source, preferenceAdvice = 
 
 // Reset All Filters
 function resetAllFilters() {
+  setAllowedDays();
   document.getElementById('fixed-slots-list').replaceChildren();
   document.getElementById('add-fixed-slot').disabled = false;
   document.getElementById('max-classes-per-day').value = '';

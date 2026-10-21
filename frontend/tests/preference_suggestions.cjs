@@ -20,6 +20,7 @@ function setup() {
     selectedCourses: new Map([['one', ['Teacher']]]),
     renderCatalogList() {}, renderSelectedCourses() {}, renderGlobalFacultyChecklist() {},
     addFixedSlot(slot) {calls.push(slot);},
+    setAllowedDays(days) {node('allowed-days').days = days;},
     getSchedulingPreferences: () => ({max_classes_per_day: 1}),
     dailyLimitContext: () => context,
     showError(message) {calls.push(message);},
@@ -73,4 +74,17 @@ test('fixed-slot suggestion clears only the specified commitments', () => {
   assert.equal(node('fixed-slots-list').cleared, true);
   assert.equal(node('add-fixed-slot').disabled, false);
   assert.deepEqual(scope.selectedCourses.get('one'), ['Teacher']);
+});
+
+
+test('applies suggested allowed days without changing the campus-day count', async () => {
+  const {scope, node, calls} = setup();
+  node('campus-days').value = '2';
+  scope.window.renderDailyLimitSuggestion(null, 'catalog', {
+    changes: {allowed_days: ['Saturday', 'Tuesday']}, suggestion: 'Also allow Tuesday.'
+  });
+  await node('btn-apply-daily-limit').onclick();
+  assert.deepEqual(node('allowed-days').days, ['Saturday', 'Tuesday']);
+  assert.equal(node('campus-days').value, '2');
+  assert.deepEqual(calls, ['catalog']);
 });

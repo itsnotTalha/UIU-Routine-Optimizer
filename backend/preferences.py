@@ -135,7 +135,7 @@ def daily_class_limit_advice(courses, campus_days, preferences):
     def feasible(limit):
         return bool(solve_schedules(
             candidates, campus_days=campus_days, max_classes_per_day=limit,
-            fixed_slots=preferences.get('fixed_slots'),
+            fixed_slots=preferences.get('fixed_slots'), allowed_days=preferences.get('allowed_days'),
             max_nodes=2_000_000, first_only=True,
             accept_schedule=(lambda s: gap_violations(s, min_gap)[0] == 0) if min_gap else None))
 
@@ -169,16 +169,36 @@ def preference_failure_advice(courses, campus_days, preferences):
     """
     from backend.optimizer import solve_schedules
 
-    def feasible(prefs, days):
+    def find_schedule(prefs, days):
         strict = prefs.get('priority') == 'strict'
         candidates = filter_strict(courses, prefs) if strict else courses
         gap = prefs.get('min_gap') if strict else None
-        return bool(solve_schedules(
+        return solve_schedules(
             candidates, campus_days=days,
             max_classes_per_day=prefs.get('max_classes_per_day'),
-            fixed_slots=prefs.get('fixed_slots'), max_nodes=200_000,
+            fixed_slots=prefs.get('fixed_slots'), allowed_days=prefs.get('allowed_days'), max_nodes=200_000,
             first_only=True,
-            accept_schedule=(lambda s: gap_violations(s, gap)[0] == 0) if gap else None))
+            accept_schedule=(lambda s: gap_violations(s, gap)[0] == 0) if gap else None)
+
+    # Obtain a concrete routine before proposing extra allowed days.
+    incomplete = False
+    allowed = preferences.get('allowed_days') or []
+    if allowed:
+        try:
+            alternatives = find_schedule({**preferences, 'allowed_days': []}, campus_days)
+            if alternatives:
+                used = {slot['day'] for item in alternatives[0] for slot in item['section']['slots']}
+                extra = used - set(allowed)
+                order = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+                suggested = [day for day in order if day in used or day in allowed]
+                fixed_outside = {slot['day'] for slot in preferences.get('fixed_slots', [])} - set(allowed)
+                cause = ('Your fixed slots include days outside your allowed class days.' if fixed_outside else
+                         'No routine fits your allowed class days with the other filters.')
+                suggestion = f"Also allow {', '.join(day for day in order if day in extra)} and find routines again."
+                return dict(message=f'{cause} Suggested fix: {suggestion}', cause=cause,
+                            suggestion=suggestion, changes={'allowed_days': suggested})
+        except ValueError:
+            incomplete = True
 
     changes = []
     if preferences.get('priority') == 'strict':
@@ -210,10 +230,9 @@ def preference_failure_advice(courses, campus_days, preferences):
         changes.append(({'earliest_start': None, 'latest_end': None, 'min_gap': None, 'faculties': {}}, campus_days,
             'Your time, break, and teacher preferences cannot all be met together.',
             'Set both time limits to Any time, Minimum break to No minimum, and allow any teacher, then apply again.'))
-    incomplete = False
     for patch, days, cause, suggestion in changes:
         try:
-            if feasible({**preferences, **patch}, days):
+            if find_schedule({**preferences, **patch}, days):
                 return dict(message=f'{cause} Suggested fix: {suggestion}',
                             cause=cause, suggestion=suggestion,
                             changes={**patch, **({'campus_days': days} if days != campus_days else {})})
