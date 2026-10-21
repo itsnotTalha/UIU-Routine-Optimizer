@@ -84,7 +84,7 @@ function refreshPreferenceSummary() {
 
   const summaryEl = document.getElementById('preferences-summary');
   if (summaryEl) {
-    summaryEl.textContent = parts.length > 0 ? parts.join(' · ') : 'Fine-tune days, time windows, breaks & teachers';
+    summaryEl.textContent = parts.length > 0 ? parts.join(' · ') : 'Your workload, class hours and teachers';
   }
   if (window.updateTimeFilterPill) window.updateTimeFilterPill();
   updateActiveFiltersBadge();
@@ -343,29 +343,62 @@ document.getElementById('btn-clear-all-faculty')?.addEventListener('click', () =
   });
 });
 
-// Apply Filters Action
-if (btnApplyFilters) {
-  btnApplyFilters.addEventListener('click', () => {
-    if (!validateSchedulingPreferences()) return;
-    closeFiltersDrawer();
-    updateActiveFiltersBadge();
-    refreshPreferenceSummary();
-    if (typeof fetchCatalogSchedules === 'function' && catalog && selectedCourses.size > 0) {
-      catalogRequest = {
-        catalog_id: catalog.id,
-        campus_days: getCampusDays(),
-        ...getSchedulingPreferences(),
-        selections: [...selectedCourses].map(([course_id, faculties]) => ({
-          course_id,
-          faculties: [...faculties]
-        }))
-      };
-      fetchCatalogSchedules();
-    } else if (typeof optimizeRoutine === 'function' && courses.length > 0) {
-      optimizeRoutine();
-    }
+// Shared action for the drawer and the suggested-limit shortcut.
+async function applySchedulingPreferences(source = null) {
+  if (!validateSchedulingPreferences()) return;
+  if (!filtersDrawerBackdrop.classList.contains('hidden')) closeFiltersDrawer();
+  preferencesChanged();
+  if (source !== 'manual' && typeof fetchCatalogSchedules === 'function' && catalog && selectedCourses.size > 0) {
+    catalogRequest = {
+      catalog_id: catalog.id,
+      campus_days: getCampusDays(),
+      ...getSchedulingPreferences(),
+      selections: [...selectedCourses].map(([course_id, faculties]) => ({course_id, faculties: [...faculties]}))
+    };
+    await fetchCatalogSchedules();
+  } else if (typeof optimizeRoutine === 'function' && courses.length > 0) {
+    await optimizeRoutine();
+  }
+}
+btnApplyFilters?.addEventListener('click', () => applySchedulingPreferences());
+
+function dailyLimitContext() {
+  return JSON.stringify({
+    preferences: getSchedulingPreferences(), days: getCampusDays(),
+    catalog: catalog?.id, selections: [...selectedCourses],
+    manual: [...document.querySelectorAll('.course-name-input, .course-text-input')].map(input => input.value)
   });
 }
+
+window.renderDailyLimitSuggestion = function(advice, source) {
+  const panel = document.getElementById('daily-limit-suggestion');
+  const button = document.getElementById('btn-apply-daily-limit');
+  panel.hidden = true;
+  button.onclick = null;
+  button.disabled = false;
+  if (!Number.isInteger(advice?.suggested) || advice.suggested <= advice.requested ||
+      getSchedulingPreferences().max_classes_per_day !== advice.requested) return;
+  const context = dailyLimitContext();
+  document.getElementById('daily-limit-suggestion-detail').textContent =
+    `Daily limit: ${advice.requested} → ${advice.suggested} classes`;
+  button.textContent = `Apply ${advice.suggested} classes/day & find routines`;
+  panel.hidden = false;
+  button.onclick = async () => {
+    if (context !== dailyLimitContext()) {
+      showError('Your courses or preferences have changed. Apply your preferences again to get an updated suggestion.');
+      return;
+    }
+    button.disabled = true;
+    button.textContent = 'Applying & finding routines…';
+    document.getElementById('max-classes-per-day').value = String(advice.suggested);
+    try {
+      await applySchedulingPreferences(source);
+    } finally {
+      // A fresh failed search may have supplied a new suggestion.
+      if (button.disabled) panel.hidden = true;
+    }
+  };
+};
 
 // Reset All Filters
 function resetAllFilters() {

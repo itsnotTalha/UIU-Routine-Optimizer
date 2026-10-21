@@ -1106,7 +1106,11 @@ async function fetchCatalogSchedules(offset = 0) {
     selectedScheduleIndex = 0;
     window.selectedScheduleIndex = 0;
     if (!catalogTotal) {
-      if (data.daily_class_limit?.message) throw new Error(data.daily_class_limit.message);
+      if (data.daily_class_limit?.message) {
+        const error = new Error(data.daily_class_limit.message);
+        error.dailyLimit = data.daily_class_limit;
+        throw error;
+      }
       const noticeText = (data.notices && data.notices.length) ? ` ${data.notices.join(' ')}` : '';
       throw new Error(`No conflict-free routines satisfy your current filters.${noticeText} Try widening your time window, choosing different campus days, or relaxing teacher preferences.`);
     }
@@ -1133,7 +1137,7 @@ async function fetchCatalogSchedules(offset = 0) {
   } catch (error) {
     if (version === requestVersion) {
       optimizedSchedules = [];
-      showError(error.message, 'schedules');
+      showError(error.message, 'schedules', error.dailyLimit, 'catalog');
     }
   } finally {
     if (version !== requestVersion) return;
