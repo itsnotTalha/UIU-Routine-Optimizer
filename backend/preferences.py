@@ -161,7 +161,7 @@ def daily_class_limit_advice(courses, campus_days, preferences):
     return advice
 
 
-def preference_failure_advice(courses, campus_days, preferences):
+def _preference_failure_advice(courses, campus_days, preferences):
     """Explain a failed search using a verified relaxation, preserving other filters.
 
     Only call after a search returns no schedules. A bounded diagnostic search
@@ -243,3 +243,10 @@ def preference_failure_advice(courses, campus_days, preferences):
     else:
         message = 'No matching routine was found, and no tested preference change alone produced one. Review overlapping course meetings and fixed slots, or relax multiple filters together and apply again.'
     return dict(message=message)
+
+
+def preference_failure_advice(courses, campus_days, preferences):
+    from backend.conflicts import course_conflicts
+    advice = _preference_failure_advice(courses, campus_days, preferences)
+    advice['conflicts'] = course_conflicts(courses, preferences)
+    return advice

@@ -507,6 +507,7 @@ window.renderOptionSelectors = renderOptionSelectors;
 // Show errors
 function showError(msg, targetWorkspace = 'schedules', dailyLimit = null, source = 'manual', preferenceAdvice = null) {
   window.renderDailyLimitSuggestion?.(dailyLimit, source, preferenceAdvice);
+  window.renderCourseConflicts?.(preferenceAdvice?.conflicts || []);
   setWorkspaceView(targetWorkspace);
   errorMessage.textContent = msg;
   errorState.classList.remove('hidden');

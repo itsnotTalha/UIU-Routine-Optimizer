@@ -1,3 +1,39 @@
+/* Pure comparison data shared by the shortlist and its regression tests. */
+function routineComparisonRows(left, right) {
+  const days = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  const time = mins => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+  function summary(schedule) {
+    const meetings = schedule.flatMap(course => course.section.slots);
+    const daily = days.map(day => {
+      const slots = meetings.filter(slot => slot.day === day).sort((a, b) => a.start_mins - b.start_mins);
+      const gaps = slots.slice(1).reduce((total, slot, i) => total + Math.max(0, slot.start_mins - slots[i].end_mins), 0);
+      return {day, slots, gaps};
+    });
+    return {daily, count: daily.filter(d => d.slots.length).length,
+      gaps: daily.reduce((total, d) => total + d.gaps, 0),
+      start: meetings.length ? time(Math.min(...meetings.map(s => s.start_mins))) : 'No meetings',
+      end: meetings.length ? time(Math.max(...meetings.map(s => s.end_mins))) : 'No meetings'};
+  }
+  const a = summary(left), b = summary(right);
+  const rows = [
+    ['Campus days', String(a.count), String(b.count)],
+    ['Weekly gaps', `${a.gaps} min`, `${b.gaps} min`],
+    ['Earliest start', a.start, b.start], ['Latest finish', a.end, b.end]
+  ];
+  const dayText = d => d.slots.length ? `${time(d.slots[0].start_mins)}–${time(Math.max(...d.slots.map(s => s.end_mins)))} · ${d.gaps} min gaps` : 'Free';
+  days.forEach((day, i) => rows.push([day, dayText(a.daily[i]), dayText(b.daily[i])]));
+  const identity = item => `${item.is_fixed ? 'Fixed: ' : ''}${item.course_name}`;
+  const names = [...new Set([...left, ...right].map(identity))];
+  const courseText = (schedule, name) => {
+    const items = schedule.filter(item => identity(item) === name);
+    return items.length ? items.map(item => `${item.section.faculty} · Section ${item.section.name}\n` +
+      item.section.slots.map(s => `${s.day.slice(0, 3)} ${s.start_time}–${s.end_time}`).join(' / ')).join('\n') : 'Not in this routine';
+  };
+  names.forEach(name => rows.push([name, courseText(left, name), courseText(right, name)]));
+  return rows;
+}
+window.routineComparisonRows = routineComparisonRows;
+
 /* Planner navigation and a local shortlist; schedules remain owned by the solver. */
 (() => {
   const days = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
@@ -97,8 +133,60 @@
     }
     persist();
   };
+  let comparisonKeys = [];
+  function renderComparison() {
+    const panel = $('routine-comparison');
+    panel.replaceChildren();
+    if (saved.length < 2) {
+      panel.append(el('p', 'Save two routines to see their differences side by side.'));
+      return;
+    }
+    comparisonKeys = comparisonKeys.filter(id => saved.some(entry => entry.key === id));
+    for (const entry of saved) {
+      if (comparisonKeys.length < 2 && !comparisonKeys.includes(entry.key)) comparisonKeys.push(entry.key);
+    }
+    panel.append(el('h3', 'Compare two routines'));
+    const selectors = el('div', '', 'comparison-selectors');
+    comparisonKeys.forEach((id, side) => {
+      const label = el('label', side === 0 ? 'Routine A' : 'Routine B');
+      const select = document.createElement('select');
+      saved.forEach((entry, index) => {
+        const option = el('option', `${index + 1}. ${entry.label} · ${entry.source || 'Saved routine'}`);
+        option.value = entry.key;
+        option.selected = entry.key === id;
+        option.disabled = entry.key === comparisonKeys[1 - side];
+        select.append(option);
+      });
+      select.onchange = () => { comparisonKeys[side] = select.value; renderComparison(); };
+      label.append(select); selectors.append(label);
+    });
+    panel.append(selectors, el('p', 'Highlighted rows differ. Saved routines are snapshots and may use different courses or preferences.'));
+    const entries = comparisonKeys.map(id => saved.find(entry => entry.key === id));
+    const rows = window.routineComparisonRows(entries[0].schedule, entries[1].schedule);
+    const scroll = el('div', '', 'comparison-scroll');
+    scroll.tabIndex = 0;
+    scroll.setAttribute('role', 'region');
+    scroll.setAttribute('aria-label', 'Routine comparison; scroll horizontally on small screens');
+    const table = document.createElement('table');
+    table.append(el('caption', 'Campus days, breaks, times and teachers'));
+    const head = document.createElement('thead');
+    const header = document.createElement('tr');
+    ['Comparison', `A · ${entries[0].label}`, `B · ${entries[1].label}`].forEach(text => {
+      const th = el('th', text); th.scope = 'col'; header.append(th);
+    });
+    head.append(header); table.append(head);
+    const body = document.createElement('tbody');
+    rows.forEach(([label, a, b]) => {
+      const row = el('tr', '', a !== b ? 'comparison-different' : '');
+      const heading = el('th', label + (a !== b ? ' · Different' : ''));
+      heading.scope = 'row';
+      row.append(heading, el('td', a), el('td', b)); body.append(row);
+    });
+    table.append(body); scroll.append(table); panel.append(scroll);
+  }
   const dialog = $('shortlist-dialog');
   function openShortlist() {
+    renderComparison();
     const content = $('shortlist-content');
     content.replaceChildren();
     if (!saved.length) content.append(el('p', 'No saved routines yet. Tap Save on a routine you like, then come back to compare.'));

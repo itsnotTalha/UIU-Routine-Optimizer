@@ -470,3 +470,21 @@ body.filters-open { overflow:hidden !important; }
 .allowed-days-options input:focus-visible + span { outline:2px solid var(--accent); outline-offset:3px; }
 .allowed-days-shortcuts { margin-top:8px; }
 .allowed-days-shortcuts button { min-height:44px; padding:6px 10px; font-size:12px; color:var(--text-secondary); border:1px solid var(--border-color); border-radius:8px; }
+
+#routine-comparison { margin-bottom:24px; }
+#routine-comparison h3 { font-weight:700; margin-bottom:12px; }
+#routine-comparison p { font-size:12px; color:var(--text-secondary); margin:12px 0; }
+.comparison-selectors { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.comparison-selectors label { font-size:13px; min-width:0; }
+.comparison-selectors select { display:block; width:100%; min-height:44px; margin-top:6px; padding:8px; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-card); color:var(--text-primary); }
+.comparison-scroll { overflow-x:auto; border:1px solid var(--border-color); border-radius:12px; }
+.comparison-scroll table { width:100%; min-width:560px; border-collapse:collapse; table-layout:fixed; font-size:12px; }
+.comparison-scroll caption { padding:12px; text-align:left; font-weight:650; }
+.comparison-scroll th, .comparison-scroll td { padding:12px; text-align:left; vertical-align:top; border-top:1px solid var(--border-color); white-space:pre-line; overflow-wrap:anywhere; }
+.comparison-scroll th:first-child { width:28%; }
+.comparison-different { background:var(--badge-bg); }
+#course-conflicts { width:100%; text-align:left; max-width:640px; }
+#course-conflicts article { border:1px solid var(--border-color); border-radius:12px; padding:14px; margin-top:10px; }
+#course-conflicts h4 { font-size:14px; font-weight:650; }
+#course-conflicts li { font-size:13px; margin:10px 0; }
+#course-conflicts p { font-size:12px; color:var(--text-secondary); }

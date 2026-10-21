@@ -573,3 +573,25 @@ window.renderPreferenceReport = function(index) {
 };
 
 refreshPreferenceSummary();
+
+window.renderCourseConflicts = function(conflicts) {
+  const panel = document.getElementById('course-conflicts');
+  panel.replaceChildren();
+  panel.hidden = !conflicts.length;
+  for (const conflict of conflicts) {
+    const card = document.createElement('article');
+    const heading = document.createElement('h4');
+    heading.textContent = conflict.message;
+    card.append(heading);
+    const list = document.createElement('ul');
+    for (const alternative of conflict.alternatives || []) {
+      const item = document.createElement('li');
+      item.textContent = alternative;
+      list.append(item);
+    }
+    const note = document.createElement('p');
+    note.textContent = conflict.note;
+    card.append(list, note);
+    panel.append(card);
+  }
+};
