@@ -65,9 +65,14 @@ function refreshPreferenceSummary() {
   const {earliest_start, latest_end, min_gap} = getSchedulingPreferences();
   const days = document.getElementById('campus-days')?.value;
   const parts = [];
-  if (days) parts.push(`${days} days`);
-  if (earliest_start || latest_end) parts.push(`${earliest_start || 'Any'}–${latest_end || 'Any'}`);
-  if (min_gap) parts.push(`≥${min_gap}m break`);
+  if (days) parts.push(`${days} days/week`);
+  const displayTime = value => {
+    const [hour, minute] = value.split(':');
+    return `${Number(hour) % 12 || 12}:${minute} ${Number(hour) >= 12 ? 'PM' : 'AM'}`;
+  };
+  if (earliest_start) parts.push(`From ${displayTime(earliest_start)}`);
+  if (latest_end) parts.push(`Until ${displayTime(latest_end)}`);
+  if (min_gap) parts.push(`${document.getElementById('min-gap-select').selectedOptions[0].textContent} minimum break`);
 
   const summaryEl = document.getElementById('preferences-summary');
   if (summaryEl) {
@@ -228,6 +233,11 @@ function renderGlobalFacultyChecklist() {
   window.cancelPriorityDrag?.();
   const container = document.getElementById('global-faculty-checklist');
   const emptyHint = document.getElementById('no-faculty-selected-hint');
+  // The priority list lives inside the drawer's scrolling body.
+  const scrollRegions = [];
+  for (let node = container; node; node = node.parentElement) {
+    if (node.scrollHeight > node.clientHeight) scrollRegions.push([node, node.scrollTop]);
+  }
   container.replaceChildren();
   emptyHint.classList.toggle('hidden', selectedCourses.size > 0);
   function node(tag, text, className) {
@@ -242,7 +252,6 @@ function renderGlobalFacultyChecklist() {
     persistCatalog();
     renderCatalogList();
     renderSelectedCourses();
-    renderGlobalFacultyChecklist();
     document.getElementById('priority-order-status').textContent = message + ' Apply preferences to update routines.';
   }
   function controls(item, label) {
@@ -301,6 +310,7 @@ function renderGlobalFacultyChecklist() {
     actions.children[1].disabled = !item.nextElementSibling;
   });
   window.initPrioritySorting(container, commit);
+  scrollRegions.forEach(([node, top]) => { node.scrollTop = top; });
 }
 window.renderGlobalFacultyChecklist = renderGlobalFacultyChecklist;
 

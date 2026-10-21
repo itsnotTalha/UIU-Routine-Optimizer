@@ -1216,12 +1216,12 @@ button:active:not(:disabled),
   max-width: 560px;
   margin: 0 auto;
 }
-@media (max-width: 1023px) {
+@media (max-width: 900px) {
   #catalog-actions {
     display: none !important;
   }
 }
-@media (min-width: 1024px) {
+@media (min-width: 901px) {
   .mobile-optimize-bar {
     display: none !important;
   }

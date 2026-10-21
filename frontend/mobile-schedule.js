@@ -23,6 +23,10 @@
     const total = catalogRequest ? catalogTotal : optimizedSchedules.length;
     document.getElementById('mobile-routine-position').textContent = `Routine ${offset + selectedScheduleIndex + 1} of ${total.toLocaleString()}`;
     picker.replaceChildren();
+    if (catalogRequest && offset > 0) {
+      const option = new Option(`← Previous routines (${Math.max(1, offset - 19)}–${offset})`, `page:${Math.max(0, offset - 20)}`);
+      picker.append(option);
+    }
     optimizedSchedules.forEach((_, index) => {
       const option = document.createElement('option');
       option.value = index;
@@ -30,6 +34,10 @@
       option.title = offset + index === 0 ? 'Best-ranked routine' : `Routine ${offset + index + 1}`;
       picker.append(option);
     });
+    if (catalogRequest && offset + optimizedSchedules.length < total) {
+      const nextOffset = offset + optimizedSchedules.length;
+      picker.append(new Option(`Next routines (${nextOffset + 1}–${Math.min(nextOffset + 20, total)}) →`, `page:${nextOffset}`));
+    }
     picker.value = selectedScheduleIndex;
     previous.disabled = offset + selectedScheduleIndex === 0;
     next.disabled = offset + selectedScheduleIndex + 1 >= total;
@@ -79,23 +87,29 @@
     renderCalendarSchedule(optimizedSchedules[index]);
     window.updateScheduleMetrics?.(index);
   }
-  picker.onchange = () => selectOption(Number(picker.value));
-  async function move(delta) {
-    if (navigating) return;
+  async function loadPage(offset, last = false) {
+    if (navigating || !catalogRequest) return;
     navigating = true;
     previous.disabled = next.disabled = picker.disabled = true;
     try {
-      const index = selectedScheduleIndex + delta;
-      if (index < 0 || index >= optimizedSchedules.length) {
-        await fetchCatalogSchedules((window.scheduleOffset || 0) + (delta < 0 ? -20 : 20));
-        if (!optimizedSchedules.length) return;
-        selectOption(delta < 0 ? optimizedSchedules.length - 1 : 0);
-      } else selectOption(index);
+      await fetchCatalogSchedules(offset);
+      if (optimizedSchedules.length && window.scheduleOffset === offset) selectOption(last ? optimizedSchedules.length - 1 : 0);
     } finally {
       navigating = false;
       picker.disabled = false;
       if (optimizedSchedules.length) window.renderMobileSchedule(optimizedSchedules[selectedScheduleIndex]);
     }
+  }
+  picker.onchange = () => {
+    if (picker.value.startsWith('page:')) loadPage(Number(picker.value.slice(5)));
+    else selectOption(Number(picker.value));
+  };
+  function move(delta) {
+    if (navigating) return;
+    const index = selectedScheduleIndex + delta;
+    if (index < 0 || index >= optimizedSchedules.length) {
+      loadPage((window.scheduleOffset || 0) + (delta < 0 ? -20 : 20), delta < 0);
+    } else selectOption(index);
   }
   previous.onclick = () => move(-1);
   next.onclick = () => move(1);

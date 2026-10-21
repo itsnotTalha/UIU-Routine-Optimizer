@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">UIU Routine Optimizer</title>
+  <desc id="desc">Transparent icon with an orange academic calendar, optimized route, and navy graduation cap.</desc>
+  <defs>
+    <linearGradient id="calendarTop" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#FFAF2F"/><stop offset="53%" stop-color="#FF7A11"/><stop offset="100%" stop-color="#FF5A06"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#F6F9FE"/>
+    </linearGradient>
+    <linearGradient id="cellBlue" x1="0" y1="0" x2="0.9" y2="1">
+      <stop offset="0%" stop-color="#E5EFFA"/><stop offset="100%" stop-color="#C9DAEC"/>
+    </linearGradient>
+    <linearGradient id="cellOrange" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFD4A0"/><stop offset="100%" stop-color="#FFA85E"/>
+    </linearGradient>
+    <linearGradient id="route" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FF7515"/><stop offset="100%" stop-color="#FF5300"/>
+    </linearGradient>
+    <linearGradient id="capTop" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0%" stop-color="#224E84"/><stop offset="40%" stop-color="#153E71"/><stop offset="100%" stop-color="#081F48"/>
+    </linearGradient>
+    <linearGradient id="capBase" x1="0" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#143968"/><stop offset="100%" stop-color="#092047"/>
+    </linearGradient>
+    <linearGradient id="binder" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#17426F"/><stop offset="100%" stop-color="#061D42"/>
+    </linearGradient>
+    <linearGradient id="tassel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFC536"/><stop offset="100%" stop-color="#FF9B0B"/>
+    </linearGradient>
+    <clipPath id="calendarClip"><rect x="72" y="132" width="356" height="323" rx="45"/></clipPath>
+    <filter id="softShadow" x="-12%" y="-12%" width="130%" height="135%">
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#1B2A4B" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+
+  <!-- All canvas areas outside the artwork stay fully transparent. -->
+  <g filter="url(#softShadow)">
+    <rect x="72" y="132" width="356" height="323" rx="45" fill="url(#paper)"/>
+    <g clip-path="url(#calendarClip)">
+      <rect x="72" y="132" width="356" height="93" fill="url(#calendarTop)"/>
+      <rect x="72" y="199" width="356" height="259" rx="23" fill="url(#paper)"/>
+    </g>
+    <!-- Timetable blocks -->
+    <g fill="url(#cellBlue)">
+      <rect x="96" y="223" width="65" height="47" rx="9"/>
+      <rect x="173" y="223" width="66" height="47" rx="9"/>
+      <rect x="250" y="223" width="65" height="47" rx="9"/>
+      <rect x="96" y="280" width="65" height="49" rx="9"/>
+      <rect x="249" y="280" width="66" height="49" rx="9"/>
+      <rect x="327" y="280" width="85" height="49" rx="9"/>
+      <rect x="96" y="340" width="65" height="27" rx="9"/>
+      <rect x="173" y="340" width="66" height="49" rx="9"/>
+      <rect x="250" y="340" width="72" height="48" rx="9"/>
+      <rect x="173" y="396" width="67" height="42" rx="9"/>
+      <rect x="249" y="396" width="73" height="42" rx="9"/>
+      <rect x="333" y="396" width="79" height="42" rx="9"/>
+    </g>
+    <g fill="url(#cellOrange)">
+      <rect x="327" y="211" width="85" height="61" rx="21"/>
+      <rect x="172" y="279" width="68" height="51" rx="9"/>
+      <rect x="333" y="341" width="79" height="47" rx="9"/>
+      <rect x="96" y="373" width="80" height="65" rx="14"/>
+    </g>
+    <!-- Route, outlined for contrast at small sizes -->
+    <path d="M139 406H218Q244 406 244 380V321H337Q366 321 366 292V247"
+          fill="none" stroke="#FFFFFF" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M139 406H218Q244 406 244 380V321H337Q366 321 366 292V247"
+          fill="none" stroke="url(#route)" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+    <g fill="url(#route)">
+      <circle cx="139" cy="406" r="29"/>
+      <circle cx="244" cy="321" r="29"/>
+      <circle cx="366" cy="247" r="29"/>
+    </g>
+    <g fill="#FFFFFF">
+      <circle cx="139" cy="406" r="14"/>
+      <circle cx="244" cy="321" r="14"/>
+      <circle cx="366" cy="247" r="14"/>
+    </g>
+    <!-- Calendar binder rings -->
+    <circle cx="153" cy="162" r="25" fill="#FFFFFF"/>
+    <circle cx="251" cy="162" r="25" fill="#FFFFFF"/>
+    <rect x="135" y="97" width="36" height="76" rx="18" fill="url(#binder)"/>
+    <rect x="233" y="97" width="36" height="76" rx="18" fill="url(#binder)"/>
+  </g>
+
+  <!-- Graduation cap and tassel -->
+  <g>
+    <path d="M295 135L294 155Q294 165 307 169L337 180Q353 185 372 179L421 161L420 129Z" fill="url(#capBase)"/>
+    <path d="M266 76Q264 71 272 68L361 61Q373 60 381 65L464 121Q472 127 465 133L374 175Q363 181 352 176L268 113Q256 104 266 93Q261 83 266 76Z" fill="url(#capTop)"/>
+    <path d="M369 98L451 138" stroke="#06224B" stroke-width="12" stroke-linecap="round"/>
+    <path d="M369 98L448 136Q453 139 453 148V174" fill="none" stroke="url(#tassel)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="369" cy="98" r="11" fill="url(#tassel)"/>
+    <circle cx="453" cy="180" r="13" fill="url(#tassel)"/>
+    <path d="M452 190Q439 204 438 227Q453 235 468 227Q466 206 455 190Z" fill="url(#tassel)"/>
+  </g>
+</svg>
