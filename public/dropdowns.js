@@ -48,6 +48,7 @@
     options().forEach((option, index) => {
       const row = document.createElement('div');
       row.id = `select-choice-${index}`;
+      if (option.value.startsWith('page:')) row.classList.add(index === 0 ? 'select-page-previous' : 'select-page-next');
       row.setAttribute('role', 'option');
       row.setAttribute('aria-selected', String(option.selected));
       row.setAttribute('aria-disabled', String(option.disabled));

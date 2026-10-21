@@ -138,7 +138,7 @@ function invalidateCatalogResults() {
   requestVersion++;
   scheduleController?.abort();
   pdfButton.disabled = !selectedCourses.size;
-  pdfButton.innerHTML = '<i class="fa-solid fa-bolt"></i> Find Clash-Free Routines';
+  pdfButton.innerHTML = '<span>Find routines</span><span aria-hidden="true">→</span>';
   btnOptimize.disabled = false;
   catalogRequest = null;
   catalogTotal = 0;
@@ -767,29 +767,31 @@ function renderCatalogList() {
 }
 
 function renderSelectedCourses() {
+  document.getElementById('catalog-panel').dataset.hasSelections = String(selectedCourses.size > 0);
   renderConstraintFacultySummary();
   window.updateGlobalFacultyPriorityDropdown?.();
   window.updateWorkspaceBadges?.();
   window.syncMobileOptimizeBar?.();
   const container = document.getElementById('selected-courses');
-  container.replaceChildren();
+  const scrollTop = container.scrollTop;
+  const existing = new Map([...container.children].filter(node => node.dataset.courseId).map(node => [node.dataset.courseId, node]));
+  const fragment = document.createDocumentFragment();
+  const focused = document.activeElement;
+  const focusedCard = focused.closest('.selected-course-card')?.dataset.courseId;
+  const focusedFaculty = focused.dataset.facultyChoice;
+  const focusedDetails = focused.tagName === 'SUMMARY';
   
   const hasSelections = selectedCourses.size > 0;
   pdfButton.disabled = !hasSelections;
   
-  if (hasSelections) {
-    pdfButton.classList.add('pulse-ready');
-    pdfButton.innerHTML = `<i class="fa-solid fa-bolt"></i> Find Clash-Free Routines (${selectedCourses.size} Selected)`;
-  } else {
-    pdfButton.classList.remove('pulse-ready');
-    pdfButton.innerHTML = `<i class="fa-solid fa-bolt"></i> Find Clash-Free Routines`;
-  }
+  pdfButton.classList.remove('pulse-ready');
+  pdfButton.innerHTML = '<span>Find routines</span><span aria-hidden="true">→</span>';
 
   if (!hasSelections) {
     const empty = document.createElement('p');
     empty.className = 'text-fluid-xs text-[var(--text-muted)] italic py-3 text-center font-medium';
-    empty.textContent = 'Select courses above to configure faculty preferences.';
-    container.appendChild(empty);
+    empty.textContent = 'Search for a course on the left and select it. Your courses and faculty choices will appear here.';
+    container.replaceChildren(empty);
     return;
   }
 
@@ -798,20 +800,30 @@ function renderSelectedCourses() {
     const course = catalog.courses.find(c => c.id === id);
     if (!course) return;
 
+    const renderKey = JSON.stringify([catalog.id, preferences]);
+    const oldCard = existing.get(id);
+    if (oldCard?.dataset.renderKey === renderKey) {
+      fragment.append(oldCard);
+      return;
+    }
     const card = document.createElement('div');
-    card.className = 'rounded-xl p-3.5 bg-[var(--bg-subtle)] border border-brandBorder flex flex-col gap-2.5 relative transition-all shadow-sm';
+    card.dataset.courseId = id;
+    card.dataset.renderKey = renderKey;
+    // Preserve the masonry footprint until the changed card has been measured.
+    if (oldCard) card.style.gridRowEnd = oldCard.style.gridRowEnd;
+    card.className = 'selected-course-card rounded-xl p-3.5 bg-[var(--bg-subtle)] border border-brandBorder flex flex-col gap-2.5 relative transition-all shadow-sm';
     card.style.borderLeft = `4px solid var(--accent, #C2410C)`;
 
     // Top info bar
     const topBar = document.createElement('div');
-    topBar.className = 'flex items-center justify-between gap-2';
+    topBar.className = 'selected-course-heading flex items-center justify-between gap-2';
     
     topBar.innerHTML = `
       <div class="flex items-center gap-2.5 min-w-0">
         <span class="text-fluid-xs font-bold font-mono-custom text-[var(--text-primary)]">${escapeHtml(course.code)}</span>
         <span class="text-fluid-xs text-[var(--text-secondary)] font-medium truncate max-w-[200px]" title="${escapeHtml(course.title)}">${escapeHtml(course.title)}</span>
       </div>
-      <button type="button" class="btn-remove-course text-[var(--text-muted)] hover:text-red-500 text-sm p-1 transition-colors" title="Remove course">
+      <button type="button" class="btn-remove-course text-[var(--text-muted)] hover:text-red-500 text-sm p-1 transition-colors" aria-label="Remove ${escapeHtml(course.code)}" title="Remove course">
         <i class="fa-solid fa-xmark"></i>
       </button>
     `;
@@ -830,11 +842,9 @@ function renderSelectedCourses() {
     const facultySection = document.createElement('div');
     facultySection.className = 'flex flex-col gap-1.5';
     
-    const priorityLabel = preferences.length > 1 
-      ? `${preferences.length} selected (Priority: ${preferences.map((f, i) => `#${i + 1} ${escapeHtml(f)}`).join(' > ')})` 
-      : (preferences.length === 1 ? '1 selected (Priority #1)' : 'All allowed');
+    const priorityLabel = preferences.length ? `${preferences.length} selected` : 'Any faculty';
     const facultyLabel = document.createElement('div');
-    facultyLabel.className = 'flex items-center justify-between text-fluid-2xs';
+    facultyLabel.className = 'selected-faculty-heading flex items-center justify-between text-fluid-2xs';
     facultyLabel.innerHTML = `
       <span class="font-bold uppercase tracking-wider text-[var(--text-muted)]">Preferred Faculty:</span>
       <span class="text-orange-500 font-semibold">${priorityLabel}</span>
@@ -849,6 +859,7 @@ function renderSelectedCourses() {
     // "All Faculty" Pill
     const allPill = document.createElement('button');
     allPill.type = 'button';
+    allPill.dataset.facultyChoice = '';
     const isAll = preferences.length === 0;
     allPill.className = `faculty-pill px-2.5 py-1 rounded-lg text-fluid-2xs font-bold border transition-all ${
       isAll ? 'active' : ''
@@ -870,6 +881,7 @@ function renderSelectedCourses() {
       const priorityIndex = isChecked ? preferences.indexOf(faculty) + 1 : 0;
       const facPill = document.createElement('button');
       facPill.type = 'button';
+      facPill.dataset.facultyChoice = faculty;
       facPill.setAttribute('aria-pressed', String(isChecked));
       const secCount = course.sections.filter(s => s.faculty === faculty).length;
       facPill.className = `faculty-pill px-2.5 py-1 rounded-lg text-fluid-2xs font-bold border transition-all flex items-center gap-1.5 ${
@@ -908,7 +920,7 @@ function renderSelectedCourses() {
 
     const list = document.createElement('div');
     list.className = 'mt-2 space-y-1.5 pl-1 max-h-28 overflow-y-auto';
-    details.addEventListener('toggle', () => {
+    const populateDetails = () => {
       if (!details.open || list.childElementCount) return;
       for (const sec of course.sections) {
         const p = document.createElement('p');
@@ -917,12 +929,23 @@ function renderSelectedCourses() {
           sec.slots.map(s => `${escapeHtml(s.day)} ${escapeHtml(s.start_time)}–${escapeHtml(s.end_time)}${s.room ? ` · ${escapeHtml(s.room)}` : ''}`).join('; ');
         list.appendChild(p);
       }
-    });
+    };
+    details.addEventListener('toggle', populateDetails);
+    details.open = oldCard?.querySelector('details')?.open || false;
+    populateDetails();
     details.appendChild(list);
     card.appendChild(details);
 
-    container.appendChild(card);
+    fragment.appendChild(card);
   });
+  container.replaceChildren(fragment);
+  window.layoutSelectedCourseCards?.();
+  container.scrollTop = scrollTop;
+  if (focusedCard) {
+    const card = [...container.children].find(node => node.dataset.courseId === focusedCard);
+    const target = focusedDetails ? card?.querySelector('summary') : [...(card?.querySelectorAll('[data-faculty-choice]') || [])].find(button => button.dataset.facultyChoice === focusedFaculty);
+    target?.focus({preventScroll:true});
+  }
 }
 
 // PDF File Input Listener
@@ -1061,7 +1084,7 @@ async function fetchCatalogSchedules(offset = 0) {
   btnOptimize.disabled = true;
   document.getElementById('page-prev').disabled = true;
   document.getElementById('page-next').disabled = true;
-  pdfButton.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Finding Combinations...`;
+  pdfButton.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Finding routines…`;
   errorState.classList.add('hidden');
   try {
     const response = await fetch('/api/catalogs/optimize', {
@@ -1112,7 +1135,7 @@ async function fetchCatalogSchedules(offset = 0) {
     }
   } finally {
     if (version !== requestVersion) return;
-    pdfButton.innerHTML = `<i class="fa-solid fa-bolt"></i> Find Clash-Free Routines`;
+    pdfButton.innerHTML = `<span>Find routines</span><span aria-hidden="true">→</span>`;
     pdfButton.disabled = !selectedCourses.size;
     btnOptimize.disabled = false;
     document.getElementById('page-prev').disabled = !catalogRequest || (window.scheduleOffset || 0) === 0;
@@ -1233,65 +1256,47 @@ async function loadDefaultRoutine() {
 })();
 
 
-// ── Mobile Fixed Optimize Bar (Option A) ──────────────────────────────────
-(function setupMobileOptimizeBar() {
+// One primary action per viewport; both controls use the same request handler.
+(function setupOptimizeActions() {
   const mobileBar = document.getElementById('mobile-optimize-bar');
   const mobileBtn = document.getElementById('btn-optimize-pdf-mobile');
-  if (!mobileBar || !mobileBtn) return;
-
-  // Sync mobile button state (disabled + label) to match the real pdfButton
-  function syncMobileBtn() {
+  const panel = document.getElementById('catalog-panel');
+  const pdfContainer = document.getElementById('pdf-container');
+  const nav = document.querySelector('.workspace-nav-bar');
+  const mobile = matchMedia('(max-width: 900px)');
+  function measureDock() {
+    document.body.style.setProperty('--mobile-nav-height', `${nav.getBoundingClientRect().height}px`);
+    if (mobileBar.classList.contains('visible')) document.body.style.setProperty('--optimize-dock-height', `${mobileBar.getBoundingClientRect().height}px`);
+  }
+  function sync() {
     mobileBtn.disabled = pdfButton.disabled;
     mobileBtn.innerHTML = pdfButton.innerHTML;
-    if (pdfButton.classList.contains('pulse-ready')) {
-      mobileBtn.classList.add('pulse-ready');
-    } else {
-      mobileBtn.classList.remove('pulse-ready');
-    }
+    const busy = !!pdfButton.querySelector('.animate-spin');
+    [pdfButton, mobileBtn].forEach(button => button.setAttribute('aria-busy', String(busy)));
+    const count = selectedCourses.size;
+    const summary = count ? `${count} ${count === 1 ? 'course' : 'courses'} selected` : 'Choose your courses';
+    document.getElementById('optimize-selection-summary').textContent = summary;
+    document.getElementById('mobile-optimize-summary').textContent = count ? `${count} ${count === 1 ? 'course' : 'courses'}` : 'Choose courses';
+    document.getElementById('optimize-selection-help').textContent = count ? 'Ready to find your clash-free week.' : 'Select at least one course to get started.';
+    document.getElementById('mobile-optimize-help').textContent = count ? 'Ready when you are' : 'Select at least one';
   }
-
-  // Show or hide the mobile bar based on catalog-panel visibility, active workspace, and screen width
-  function updateMobileBarVisibility() {
-    const catalogPanel = document.getElementById('catalog-panel');
-    const isCoursesWorkspace = (document.body.dataset.workspace || 'courses') === 'courses';
-    const isVisible = window.innerWidth < 1024 && catalogPanel && !catalogPanel.hidden && isCoursesWorkspace;
-    mobileBar.classList.toggle('visible', !!isVisible);
-    document.body.classList.toggle('has-mobile-optimize-bar', !!isVisible);
-    if (isVisible) syncMobileBtn();
+  function visibility() {
+    const visible = mobile.matches && !panel.hidden && !pdfContainer.classList.contains('hidden') && document.body.dataset.workspace === 'courses';
+    mobileBar.classList.toggle('visible', visible);
+    document.body.classList.toggle('has-mobile-optimize-bar', visible);
+    sync();
+    measureDock();
   }
-
-  window.syncMobileOptimizeBar = syncMobileBtn;
-  window.updateMobileBarVisibility = updateMobileBarVisibility;
-
-  // Observe catalog-panel hidden attribute changes
-  const catalogPanel = document.getElementById('catalog-panel');
-  if (catalogPanel) {
-    new MutationObserver(updateMobileBarVisibility).observe(catalogPanel, { attributes: true, attributeFilter: ['hidden'] });
-  }
-
-  // Observe workspace switches (Courses & Faculty vs Schedules)
-  new MutationObserver(updateMobileBarVisibility).observe(document.body, {
-    attributes: true,
-    attributeFilter: ['data-workspace']
-  });
-
-  // Also re-check on resize
-  window.addEventListener('resize', updateMobileBarVisibility, { passive: true });
-
-  // Wire mobile button click → same logic as real pdfButton
-  mobileBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    pdfButton.click();
-  });
-
-  // Sync state whenever pdfButton changes (use a MutationObserver)
-  new MutationObserver(syncMobileBtn).observe(pdfButton, {
-    attributes: true,
-    attributeFilter: ['disabled', 'class'],
-    childList: true,
-    subtree: true,
-  });
-
-  // Initial state
-  updateMobileBarVisibility();
+  window.syncMobileOptimizeBar = sync;
+  window.updateMobileBarVisibility = visibility;
+  new MutationObserver(visibility).observe(panel, {attributes:true, attributeFilter:['hidden']});
+  new MutationObserver(visibility).observe(pdfContainer, {attributes:true, attributeFilter:['class']});
+  new MutationObserver(visibility).observe(document.body, {attributes:true, attributeFilter:['data-workspace']});
+  new MutationObserver(sync).observe(pdfButton, {attributes:true, attributeFilter:['disabled'], childList:true, subtree:true});
+  const observer = new ResizeObserver(measureDock);
+  observer.observe(nav);
+  observer.observe(mobileBar);
+  mobile.addEventListener('change', visibility);
+  mobileBtn.addEventListener('click', () => pdfButton.click());
+  visibility();
 })();

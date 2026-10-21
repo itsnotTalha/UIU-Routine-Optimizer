@@ -128,3 +128,28 @@
   $('compare-routines').onclick = $('planner-shortlist-open').onclick = openShortlist;
   updateSaved();
 })();
+
+// Pack variable-height faculty cards without reserving a tall row for every course.
+(() => {
+  const container = document.getElementById('selected-courses');
+  let frame;
+  function layoutCards() {
+    if (!matchMedia('(min-width:901px)').matches) return;
+    container.querySelectorAll('.selected-course-card').forEach(card => {
+      const height = card.getBoundingClientRect().height;
+      if (height) card.style.gridRowEnd = `span ${Math.ceil((height + 12) / 20)}`;
+    });
+  }
+  window.layoutSelectedCourseCards = layoutCards;
+  const observer = new ResizeObserver(() => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(layoutCards);
+  });
+  function watchCards() {
+    observer.disconnect();
+    observer.observe(container);
+    container.querySelectorAll('.selected-course-card').forEach(card => observer.observe(card));
+  }
+  new MutationObserver(watchCards).observe(container, {childList:true});
+  watchCards();
+})();

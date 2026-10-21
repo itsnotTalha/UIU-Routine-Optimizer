@@ -233,6 +233,11 @@ function renderGlobalFacultyChecklist() {
   window.cancelPriorityDrag?.();
   const container = document.getElementById('global-faculty-checklist');
   const emptyHint = document.getElementById('no-faculty-selected-hint');
+  // The priority list lives inside the drawer's scrolling body.
+  const scrollRegions = [];
+  for (let node = container; node; node = node.parentElement) {
+    if (node.scrollHeight > node.clientHeight) scrollRegions.push([node, node.scrollTop]);
+  }
   container.replaceChildren();
   emptyHint.classList.toggle('hidden', selectedCourses.size > 0);
   function node(tag, text, className) {
@@ -247,7 +252,6 @@ function renderGlobalFacultyChecklist() {
     persistCatalog();
     renderCatalogList();
     renderSelectedCourses();
-    renderGlobalFacultyChecklist();
     document.getElementById('priority-order-status').textContent = message + ' Apply preferences to update routines.';
   }
   function controls(item, label) {
@@ -306,6 +310,7 @@ function renderGlobalFacultyChecklist() {
     actions.children[1].disabled = !item.nextElementSibling;
   });
   window.initPrioritySorting(container, commit);
+  scrollRegions.forEach(([node, top]) => { node.scrollTop = top; });
 }
 window.renderGlobalFacultyChecklist = renderGlobalFacultyChecklist;
 
