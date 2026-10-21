@@ -88,6 +88,7 @@
     const labelNode = document.querySelector(`label[for="${select.id}"]`);
     const label = select.getAttribute('aria-label') || labelNode?.textContent.trim() || 'Choose an option';
     button.setAttribute('aria-label', label);
+    if (select.hasAttribute('aria-describedby')) button.setAttribute('aria-describedby', select.getAttribute('aria-describedby'));
     if (labelNode) labelNode.htmlFor = button.id;
     const value = document.createElement('span');
     value.className = 'select-value';
