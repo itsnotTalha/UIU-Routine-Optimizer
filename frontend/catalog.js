@@ -285,8 +285,19 @@ function populateRoutineTimeDropdowns() {
   for (const course of catalog.courses) {
     for (const section of course.sections) {
       for (const slot of section.slots) {
-        if (slot.start_time) rawStarts.add(slot.start_time);
-        if (slot.end_time) rawEnds.add(slot.end_time);
+        if (slot.start_time) {
+          const [hour, minute] = slot.start_time.split(':').map(Number);
+          const cutoff = Math.floor((hour * 60 + minute) / 30) * 30;
+          rawStarts.add(`${String(Math.floor(cutoff / 60)).padStart(2, '0')}:${String(cutoff % 60).padStart(2, '0')}`);
+        }
+        if (slot.end_time) {
+          // Offer familiar half-hour cutoffs instead of near-identical class endings.
+          const [hour, minute] = slot.end_time.split(':').map(Number);
+          const cutoff = Math.ceil((hour * 60 + minute) / 30) * 30;
+          if (cutoff < 1440) {
+            rawEnds.add(`${String(Math.floor(cutoff / 60)).padStart(2, '0')}:${String(cutoff % 60).padStart(2, '0')}`);
+          }
+        }
       }
     }
   }
