@@ -32,7 +32,7 @@ function addFixedSlot(slot = {day: 'Saturday', start_time: 510, end_time: 660}) 
   if (list.children.length >= 30) return;
   const row = document.createElement('div');
   row.className = 'fixed-slot-row';
-  for (const [field, labelText, type] of [['title', 'Label (optional)', 'text'], ['day', 'Day', 'select'], ['start_time', 'Start time', 'time'], ['end_time', 'End time', 'time']]) {
+  for (const [field, labelText, type] of [['title', 'Name (optional)', 'text'], ['day', 'Day', 'select'], ['start_time', 'Start time', 'time'], ['end_time', 'End time', 'time']]) {
     const label = document.createElement('label');
     label.textContent = labelText;
     const input = document.createElement(type === 'select' ? 'select' : 'input');
@@ -53,7 +53,7 @@ function addFixedSlot(slot = {day: 'Saturday', start_time: 510, end_time: 660}) 
   }
   const remove = document.createElement('button');
   remove.type = 'button';
-  remove.textContent = 'Remove fixed slot';
+  remove.textContent = 'Remove blocked time';
   remove.onclick = () => { row.remove(); document.getElementById('add-fixed-slot').disabled = false; preferencesChanged(); };
   row.append(remove);
   row.addEventListener('input', () => {
@@ -149,7 +149,7 @@ function refreshPreferenceSummary() {
 
   const summaryEl = document.getElementById('preferences-summary');
   if (summaryEl) {
-    summaryEl.textContent = parts.length > 0 ? parts.join(' · ') : 'Your workload, class hours and teachers';
+    summaryEl.textContent = parts.length > 0 ? parts.join(' · ') : 'Days, times and teacher choices';
   }
   if (window.updateTimeFilterPill) window.updateTimeFilterPill();
   updateActiveFiltersBadge();
