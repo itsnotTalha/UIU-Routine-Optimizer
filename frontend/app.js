@@ -574,7 +574,7 @@ async function optimizeRoutine() {
     selectedScheduleIndex = 0;
 
     if (optimizedSchedules.length === 0) {
-      showError("No valid conflict-free combinations could be found for the defined courses. Try widening the time window or relaxing filters.", 'schedules');
+      showError(data.daily_class_limit?.message || "No valid conflict-free combinations could be found for the defined courses. Try widening the time window or relaxing filters.", 'schedules');
       return;
     }
 

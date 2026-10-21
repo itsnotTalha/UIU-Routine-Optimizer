@@ -708,6 +708,12 @@ Wednesday 09:50-11:10</pre>
           <p id="min-gap-help" class="text-fluid-2xs text-[var(--text-muted)] font-medium">Minimum time between consecutive classes. No minimum allows back-to-back classes.</p>
         </div>
 
+        <div class="px-5 py-4 border-b border-brandBorder flex flex-col gap-2">
+          <label for="max-classes-per-day" class="text-fluid-2xs font-bold text-[var(--text-secondary)]">Maximum classes per day</label>
+          <input id="max-classes-per-day" type="number" min="1" step="1" inputmode="numeric" placeholder="No limit" aria-describedby="max-classes-help" class="glass-input rounded-xl px-3 py-2.5 text-fluid-xs font-semibold w-full">
+          <p id="max-classes-help" class="text-fluid-2xs text-[var(--text-muted)] font-medium">Count each scheduled meeting, including labs, as one class. Leave blank for no limit. If no routine fits, we’ll suggest the closest workable limit.</p>
+        </div>
+
         <!-- 4. Course &amp; faculty priority (Multi-Select Tick List) -->
         <div class="px-5 py-4 flex flex-col gap-3">
           <div class="flex items-center justify-between">
@@ -754,10 +760,10 @@ Wednesday 09:50-11:10</pre>
 
   <!-- Application Scripts -->
   <dialog id="shortlist-dialog" aria-labelledby="shortlist-title"><header><div><p class="planner-eyebrow">KEEP YOUR OPTIONS OPEN</p><h2 id="shortlist-title">Your shortlist</h2></div><button id="close-shortlist" type="button" aria-label="Close shortlist">✕</button></header><p>Save up to three routines to compare days, breaks and teachers. Stored on this browser.</p><div id="shortlist-content"></div></dialog>
-  <script src="app.js?v=9b186cc7aa60"></script>
+  <script src="app.js?v=1f46bb080624"></script>
   <script src="priority-sorter.js?v=aeb58fa450e5"></script>
-  <script src="preferences.js?v=3b0a0486b471"></script>
-  <script src="catalog.js?v=f3f96199d730"></script>
+  <script src="preferences.js?v=51a94ee0f261"></script>
+  <script src="catalog.js?v=bc4f74ad2aa6"></script>
   <script src="mobile.js?v=308bcfe647d2"></script>
   <script src="mobile-search.js?v=610cb89a7508"></script>
   <script src="mobile-schedule.js?v=ccdfa2ab2453"></script>

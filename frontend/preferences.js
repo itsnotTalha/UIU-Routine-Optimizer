@@ -24,12 +24,18 @@ function getSchedulingPreferences() {
     earliest_start: earliestInput?.value || null,
     latest_end: latestInput?.value || null,
     priority: 'strict',
+    max_classes_per_day: document.getElementById('max-classes-per-day')?.value ? Number(document.getElementById('max-classes-per-day').value) : null,
     min_gap: minGapVal ? Number(minGapVal) : null,
     prioritized_faculties: getGlobalPrioritizedFaculties()
   };
 }
 
 function validateSchedulingPreferences() {
+  const dailyLimit = document.getElementById('max-classes-per-day');
+  if (dailyLimit && !dailyLimit.validity.valid) {
+    openFiltersDrawer();
+    return dailyLimit.reportValidity();
+  }
   if (earliestInput && latestInput) {
     latestInput.setCustomValidity(earliestInput.value && latestInput.value && earliestInput.value >= latestInput.value
       ? 'Finish time must be later than start time.' : '');
@@ -47,6 +53,7 @@ function updateActiveFiltersBadge() {
   if (earliestInput?.value) count++;
   if (latestInput?.value) count++;
   if (document.getElementById('min-gap-select')?.value) count++;
+  if (document.getElementById('max-classes-per-day')?.value) count++;
 
   const badge = document.getElementById('active-filters-badge');
   const drawerBadge = document.getElementById('drawer-active-badge');
@@ -62,7 +69,7 @@ function updateActiveFiltersBadge() {
 window.updateActiveFiltersBadge = updateActiveFiltersBadge;
 
 function refreshPreferenceSummary() {
-  const {earliest_start, latest_end, min_gap} = getSchedulingPreferences();
+  const {earliest_start, latest_end, min_gap, max_classes_per_day} = getSchedulingPreferences();
   const days = document.getElementById('campus-days')?.value;
   const parts = [];
   if (days) parts.push(`${days} days/week`);
@@ -72,6 +79,7 @@ function refreshPreferenceSummary() {
   };
   if (earliest_start) parts.push(`From ${displayTime(earliest_start)}`);
   if (latest_end) parts.push(`Until ${displayTime(latest_end)}`);
+  if (max_classes_per_day) parts.push(`Max ${max_classes_per_day} classes/day`);
   if (min_gap) parts.push(`${document.getElementById('min-gap-select').selectedOptions[0].textContent} minimum break`);
 
   const summaryEl = document.getElementById('preferences-summary');
@@ -84,6 +92,7 @@ function refreshPreferenceSummary() {
 
 function restoreSchedulingPreferences(saved) {
   if (!saved) return;
+  document.getElementById('max-classes-per-day').value = saved.max_classes_per_day ?? '';
   if (earliestInput) earliestInput.value = saved.earliest_start || '';
   if (latestInput) latestInput.value = saved.latest_end || '';
 
@@ -131,6 +140,7 @@ if (earliestInput) earliestInput.addEventListener('change', preferencesChanged);
 if (latestInput) latestInput.addEventListener('change', preferencesChanged);
 document.getElementById('campus-days')?.addEventListener('change', preferencesChanged);
 document.getElementById('min-gap-select')?.addEventListener('change', preferencesChanged);
+document.getElementById('max-classes-per-day')?.addEventListener('change', preferencesChanged);
 
 if (earliestSelect) {
   earliestSelect.addEventListener('change', () => {
@@ -359,6 +369,7 @@ if (btnApplyFilters) {
 
 // Reset All Filters
 function resetAllFilters() {
+  document.getElementById('max-classes-per-day').value = '';
   const campusDays = document.getElementById('campus-days');
   if (campusDays) campusDays.value = '';
   if (earliestInput) earliestInput.value = '';

@@ -10,7 +10,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from backend.models import OptimizeRequest, OptimizeResponse, SavedCourse
 from backend.parser import parse_section_text
 from backend.optimizer import solve_schedules
-from backend.preferences import filter_strict, preference_score, preference_report, gap_violations
+from backend.preferences import filter_strict, preference_score, preference_report, gap_violations, daily_class_limit_advice
 from backend.catalog import router as catalog_router
 
 app = FastAPI(title="Routine Schedule Optimizer")
@@ -56,14 +56,15 @@ def optimize_schedules(request: OptimizeRequest):
             latest_end=request.latest_end,
             priority=request.priority,
             min_gap=request.min_gap,
+            max_classes_per_day=request.max_classes_per_day,
             prioritized_faculties=request.prioritized_faculties or []
         )
         candidates = filter_strict(parsed_courses, preferences) if request.priority == 'strict' else parsed_courses
-        schedules = solve_schedules(candidates, campus_days=request.campus_days, max_results=100_000, max_nodes=2_000_000)
+        schedules = solve_schedules(candidates, campus_days=request.campus_days, max_results=100_000, max_nodes=2_000_000, max_classes_per_day=request.max_classes_per_day)
         if request.priority == 'strict' and request.min_gap:
             schedules = [s for s in schedules if gap_violations(s, request.min_gap)[0] == 0]
         schedules.sort(key=lambda s: preference_score(s, preferences))
-        return OptimizeResponse(schedules=schedules, preference_reports=[preference_report(s, preferences) for s in schedules])
+        return OptimizeResponse(daily_class_limit=daily_class_limit_advice(parsed_courses, request.campus_days, preferences) if not schedules else None, schedules=schedules, preference_reports=[preference_report(s, preferences) for s in schedules])
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
