@@ -77,7 +77,7 @@
     control.button.setAttribute('aria-expanded', 'true');
     highlight(options().findIndex(o => o.selected));
   }
-  document.querySelectorAll('select').forEach(select => {
+  document.querySelectorAll('select:not(#mobile-routine-select)').forEach(select => {
     const button = document.createElement('button');
     button.type = 'button';
     button.id = `${select.id}-control`;

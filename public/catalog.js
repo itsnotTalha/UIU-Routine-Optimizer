@@ -558,6 +558,7 @@ function renderCatalogList() {
   }
 
   document.getElementById('catalog-count').textContent = `${matches.length} courses shown · ${selectedCourses.size} selected`;
+  document.getElementById('catalog-search-status').textContent = `${matches.length} ${query ? 'results' : 'courses'} · ${selectedCourses.size} selected`;
   
   if (btnClearSearch) {
     btnClearSearch.classList.toggle('hidden', !query);
