@@ -30,20 +30,47 @@ def penalties(schedule, preferences):
 
 
 def faculty_priority_rank(schedule, preferences):
-    """Calculate preference rank penalty: 0 for 1st choice, 1 for 2nd choice, etc."""
+    """Lexicographic faculty ranks in the user's course order, independent of solver order."""
     faculty = preferences.get('faculties', {})
-    rank = 0
+    chosen = {item['course_name']: item['section']['faculty'] for item in schedule}
+    ranks = []
+    for name in preferences.get('course_order', list(faculty)):
+        wanted = faculty.get(name, [])
+        teacher = chosen.get(name)
+        ranks.append(wanted.index(teacher) if teacher in wanted else len(wanted))
+    return tuple(ranks)
+
+
+def gap_violations(schedule, min_gap):
+    """Check how many consecutive class pairs on the same day have less than min_gap minutes between them."""
+    if not min_gap or min_gap <= 0:
+        return 0, []
+    days = {}
     for item in schedule:
-        wanted = faculty.get(item['course_name'], [])
-        if wanted and item['section']['faculty'] in wanted:
-            rank += wanted.index(item['section']['faculty'])
-    return rank
+        for slot in item['section']['slots']:
+            days.setdefault(slot['day'], []).append((
+                slot['start_mins'], slot['end_mins'],
+                item['course_name'], item['section']['name'],
+                slot['start_time'], slot['end_time']
+            ))
+    violations = 0
+    warnings = []
+    for day, slots in days.items():
+        slots.sort(key=lambda s: s[0])
+        for a, b in zip(slots, slots[1:]):
+            gap = b[0] - a[1]
+            if gap < min_gap:
+                violations += 1
+                warnings.append(f"{day}: only {gap}m gap between {a[2].split(' — ')[0]} (Sec {a[3]}) ending {a[5]} and {b[2].split(' — ')[0]} (Sec {b[3]}) starting {b[4]} (preferred ≥{min_gap}m).")
+    return violations, warnings
 
 
 def preference_score(schedule, preferences):
     outside, mismatch = penalties(schedule, preferences)
     rank = faculty_priority_rank(schedule, preferences)
-    primary = (mismatch, rank, outside) if preferences.get('priority') == 'faculty_first' else (outside, mismatch, rank)
+    min_gap = preferences.get('min_gap') if preferences else None
+    gaps, _ = gap_violations(schedule, min_gap)
+    primary = (mismatch, rank, outside, gaps) if preferences.get('priority') == 'faculty_first' else (outside, gaps, mismatch, rank)
     return (*primary, *schedule_score(schedule))
 
 
@@ -58,17 +85,20 @@ def filter_strict(courses, preferences):
 
 
 def preference_report(schedule, preferences):
-    earliest = minutes(preferences.get('earliest_start'))
-    latest = minutes(preferences.get('latest_end'))
+    earliest = minutes(preferences.get('earliest_start')) if preferences else None
+    latest = minutes(preferences.get('latest_end')) if preferences else None
     warnings = []
     for item in schedule:
         section = item['section']
-        wanted = preferences.get('faculties', {}).get(item['course_name'], [])
+        wanted = preferences.get('faculties', {}).get(item['course_name'], []) if preferences else []
         if wanted and section['faculty'] not in wanted:
             warnings.append(f"{item['course_name']}: section {section['name']} uses {section['faculty']}; preferred: {', '.join(wanted)}.")
         for slot in section['slots']:
             if outside_minutes(slot, earliest, latest):
                 warnings.append(f"{item['course_name']}, section {section['name']}: {slot['day']} {slot['start_time']}–{slot['end_time']} is outside your preferred window ({preferences.get('earliest_start') or '00:00'}–{preferences.get('latest_end') or '24:00'}).")
+    if preferences and preferences.get('min_gap'):
+        _, gap_warns = gap_violations(schedule, preferences['min_gap'])
+        warnings.extend(gap_warns)
     outside, mismatch = penalties(schedule, preferences)
     return dict(exact_match=not warnings, outside_minutes=outside,
                 faculty_mismatches=mismatch, warnings=warnings)

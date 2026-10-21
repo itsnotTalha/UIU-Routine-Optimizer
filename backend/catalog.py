@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException, UploadFile
 from backend.models import CatalogOptimizeRequest
 from backend.optimizer import solve_schedules, schedule_score
 from backend.pdf_import import import_pdf
-from backend.preferences import preference_score, preference_report, filter_strict, availability_notices, penalties
+from backend.preferences import preference_score, preference_report, filter_strict, availability_notices, penalties, gap_violations
 
 router = APIRouter()
 CATALOG_DIR = Path(__file__).parent / 'catalogs'
@@ -41,8 +41,10 @@ def ranked_schedules(courses, campus_days, preferences=None):
         if key in _SCHEDULE_CACHE:
             _SCHEDULE_CACHE.move_to_end(key)
             return _SCHEDULE_CACHE[key][1]
-    candidates = filter_strict(courses, preferences) if preferences and preferences['priority'] == 'strict' else courses
+    candidates = filter_strict(courses, preferences) if preferences and preferences.get('priority') == 'strict' else courses
     schedules = solve_schedules(candidates, max_results=100_000, max_nodes=2_000_000, campus_days=campus_days)
+    if preferences and preferences.get('priority') == 'strict' and preferences.get('min_gap'):
+        schedules = [s for s in schedules if gap_violations(s, preferences['min_gap'])[0] == 0]
     schedules.sort(key=(lambda s: preference_score(s, preferences)) if preferences else schedule_score)
     if len(schedules) <= _CACHE_MAX_RESULTS:
         with _CACHE_LOCK:
@@ -174,7 +176,15 @@ def optimize_catalog(request: CatalogOptimizeRequest):
     catalog = load_catalog(request.catalog_id)
     available = {c['id']: c for c in catalog['courses']}
     courses, seen = [], set()
-    preferences = dict(earliest_start=request.earliest_start, latest_end=request.latest_end, priority=request.priority, faculties={})
+    preferences = dict(
+        earliest_start=request.earliest_start,
+        latest_end=request.latest_end,
+        priority=request.priority,
+        min_gap=request.min_gap,
+        prioritized_faculties=request.prioritized_faculties or [],
+        faculties={},
+        course_order=[]
+    )
     for selection in request.selections:
         if selection.course_id in seen:
             raise HTTPException(400, 'Select each course only once.')
@@ -186,6 +196,7 @@ def optimize_catalog(request: CatalogOptimizeRequest):
         if not faculties <= {s['faculty'] for s in course['sections']}:
             raise HTTPException(400, f"Unknown faculty for {course['code']}.")
         name = f"{course['code']} — {course['title']} ({course['program']})"
+        preferences['course_order'].append(name)
         preferences['faculties'][name] = [f for f in selection.faculties if f in faculties]
         courses.append(dict(course_name=name, sections=course['sections']))
     # Search constrained courses first; preserve every valid result within limits.

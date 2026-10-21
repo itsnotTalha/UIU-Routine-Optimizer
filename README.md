@@ -245,3 +245,13 @@ Priority modes include alternatives, ordered by these rules before campus-day an
 The Routine constraints section groups campus days, time boundaries, priority mode, and a live summary of selected faculty names by course. Preferences persist with the catalog selection. Manual entries also support time windows; faculty choices for manual entries come from their pasted sections. The existing search limits still apply when priority modes expand the candidate sections.
 
 Both optimize endpoints accept `earliest_start` and `latest_end` (nullable `HH:MM`, 24-hour), plus `priority` (`strict`, `time_first`, or `faculty_first`). Results include `preference_reports`; the catalog API also returns `exact_matches` and `notices` alongside its paginated schedules. Cache keys include all preference settings.
+
+## Planner interface development
+
+Edit the files in `frontend/`, then run `python3 scripts/sync_frontend.py`. This synchronizes the deployed `public/` copy and adds content hashes to CSS/JavaScript URLs so updated markup loads matching assets.
+
+The planner supports course search and selected-only filtering, per-course faculty order, shared scheduling preferences, day/agenda/week views, and a browser-local shortlist of up to three routines for comparison. The shortlist stores snapshots; changing a PDF or preferences does not revalidate previously saved routines.
+
+Design references: [Morgen calendar navigation](https://www.morgen.so/guides/how-to-navigate-your-calendar-in-morgen) and [Coursicle schedule planning](https://www.coursicle.com/college-schedule-maker/).
+
+Course and faculty priority is configured in Preferences. Drag course groups to set precedence, then drag the selected teachers within each group. Arrow buttons and keyboard Up/Down on the handles provide alternatives. All selected courses remain required. With the active time/day constraints satisfied, faculty ranks are compared in course order before campus-day and gap tie-breakers.
