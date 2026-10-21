@@ -1,3 +1,4 @@
+from collections import Counter
 from typing import List, Dict, Any
 
 def slots_overlap(s1: Dict[str, Any], s2: Dict[str, Any]) -> bool:
@@ -21,7 +22,7 @@ def has_conflict(selected_sections: List[Dict[str, Any]], next_section: Dict[str
                     return True
     return False
 
-def solve_schedules(courses: List[Dict[str, Any]], max_results=None, max_nodes=None, campus_days=None) -> List[List[Dict[str, Any]]]:
+def solve_schedules(courses: List[Dict[str, Any]], max_results=None, max_nodes=None, campus_days=None, max_classes_per_day=None, accept_schedule=None, first_only=False) -> List[List[Dict[str, Any]]]:
     """
     Finds all combinations of sections (one per course) that are conflict-free.
     
@@ -73,15 +74,18 @@ def solve_schedules(courses: List[Dict[str, Any]], max_results=None, max_nodes=N
                 duration = slot['end_mins'] - slot['start_mins']
                 occupied |= ((1 << duration) - 1) << (day * 1440 + slot['start_mins'])
                 days |= 1 << day
-            options.append((section, occupied, days))
+            options.append((section, occupied, days, Counter(slot['day'] for slot in section['slots'])))
         encoded.append(options)
 
     results = []
     nodes = 0
     current_selection = []
+    daily_counts = Counter()
 
     def backtrack(course_idx, occupied, days):
         nonlocal nodes
+        if first_only and results:
+            return
         nodes += 1
         if max_nodes is not None and nodes > max_nodes:
             raise ValueError("Too many combinations to search. Select fewer courses or narrow faculty preferences.")
@@ -90,15 +94,23 @@ def solve_schedules(courses: List[Dict[str, Any]], max_results=None, max_nodes=N
         if course_idx == len(courses):
             if campus_days is not None and days.bit_count() != campus_days:
                 return
+            if accept_schedule is not None and not accept_schedule(current_selection):
+                return
             if max_results is not None and len(results) >= max_results:
                 raise ValueError(f"More than {max_results:,} valid combinations. Narrow faculty preferences or select fewer courses.")
             results.append(list(current_selection))
             return
-        for section, section_mask, section_days in encoded[course_idx]:
+        for section, section_mask, section_days, counts in encoded[course_idx]:
+            if max_classes_per_day is not None and any(daily_counts[d] + n > max_classes_per_day for d, n in counts.items()):
+                continue
             if not occupied & section_mask:
+                if max_classes_per_day is not None:
+                    daily_counts.update(counts)
                 current_selection.append({'course_name': courses[course_idx]['course_name'], 'section': section})
                 backtrack(course_idx + 1, occupied | section_mask, days | section_days)
                 current_selection.pop()
+                if max_classes_per_day is not None:
+                    daily_counts.subtract(counts)
 
     backtrack(0, 0, 0)
     return results

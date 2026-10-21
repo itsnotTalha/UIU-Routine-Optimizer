@@ -115,3 +115,42 @@ def availability_notices(courses, preferences):
             if options and not any(all(outside_minutes(slot, earliest, latest) == 0 for slot in s['slots']) for s in options):
                 notices.append(f"{course['course_name']}: {faculty} has no section with every meeting inside your preferred time window.")
     return notices
+
+
+def daily_class_limit_advice(courses, campus_days, preferences):
+    """Find the smallest feasible cap without changing any other active constraint."""
+    from collections import Counter
+    from backend.optimizer import solve_schedules
+
+    requested = preferences.get('max_classes_per_day')
+    if requested is None:
+        return None
+    candidates = filter_strict(courses, preferences) if preferences.get('priority') == 'strict' else courses
+    min_gap = preferences.get('min_gap') if preferences.get('priority') == 'strict' else None
+
+    def feasible(limit):
+        return bool(solve_schedules(
+            candidates, campus_days=campus_days, max_classes_per_day=limit,
+            max_nodes=2_000_000, first_only=True,
+            accept_schedule=(lambda s: gap_violations(s, min_gap)[0] == 0) if min_gap else None))
+
+    advice = dict(requested=requested, suggested=None)
+    upper = sum(max((max(Counter(slot['day'] for slot in sec['slots']).values(), default=0)
+                     for sec in c['sections']), default=0) for c in candidates)
+    try:
+        if upper <= requested or not feasible(upper):
+            advice['message'] = 'No routine satisfies your current filters. Increasing the daily class limit alone will not help; review your campus days, time window, breaks, or teacher choices.'
+            return advice
+        lower = requested + 1
+        while lower < upper:
+            mid = (lower + upper) // 2
+            if feasible(mid):
+                upper = mid
+            else:
+                lower = mid + 1
+        advice['suggested'] = lower
+        noun = 'class' if requested == 1 else 'classes'
+        advice['message'] = f'No routine can fit at most {requested} {noun} per day with your other filters. Try {lower} classes per day — this is the closest workable limit. Update it in Preferences and apply again.'
+    except ValueError:
+        advice['message'] = f'No routine fits your daily limit of {requested}. The search is too large to verify a nearby limit; narrow your course or teacher choices and try again.'
+    return advice

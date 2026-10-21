@@ -558,6 +558,7 @@ function renderCatalogList() {
   }
 
   document.getElementById('catalog-count').textContent = `${matches.length} courses shown · ${selectedCourses.size} selected`;
+  document.getElementById('catalog-search-status').textContent = `${matches.length} ${query ? 'results' : 'courses'} · ${selectedCourses.size} selected`;
   
   if (btnClearSearch) {
     btnClearSearch.classList.toggle('hidden', !query);
@@ -1105,6 +1106,7 @@ async function fetchCatalogSchedules(offset = 0) {
     selectedScheduleIndex = 0;
     window.selectedScheduleIndex = 0;
     if (!catalogTotal) {
+      if (data.daily_class_limit?.message) throw new Error(data.daily_class_limit.message);
       const noticeText = (data.notices && data.notices.length) ? ` ${data.notices.join(' ')}` : '';
       throw new Error(`No conflict-free routines satisfy your current filters.${noticeText} Try widening your time window, choosing different campus days, or relaxing teacher preferences.`);
     }

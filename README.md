@@ -255,3 +255,10 @@ The planner supports course search and selected-only filtering, per-course facul
 Design references: [Morgen calendar navigation](https://www.morgen.so/guides/how-to-navigate-your-calendar-in-morgen) and [Coursicle schedule planning](https://www.coursicle.com/college-schedule-maker/).
 
 Course and faculty priority is configured in Preferences. Drag course groups to set precedence, then drag the selected teachers within each group. Arrow buttons and keyboard Up/Down on the handles provide alternatives. All selected courses remain required. With the active time/day constraints satisfied, faculty ranks are compared in course order before campus-day and gap tie-breakers.
+
+
+### Maximum classes per day
+
+Preferences includes an optional **Maximum classes per day** limit. Each scheduled meeting (including a lab) counts once on its day; leave the field blank for no cap. Both optimize endpoints accept `max_classes_per_day` as a positive integer or `null`.
+
+When no routine fits, `daily_class_limit` in the response explains why and, when feasible, includes the smallest higher `suggested` limit that preserves the other active constraints. Suggestions do not change the saved preference. If another constraint prevents every routine, or the bounded search cannot verify a suggestion, the warning says so instead of inventing a number.

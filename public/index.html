@@ -32,7 +32,7 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <!-- Custom Stylesheet -->
   <link rel="stylesheet" href="styles.css?v=29553dc15417">
-  <link rel="stylesheet" href="planner.css?v=4d1b21f4183f">
+  <link rel="stylesheet" href="planner.css?v=b2bb295e6100">
   <script>
     tailwind.config = {
       theme: {
@@ -243,8 +243,8 @@
           <div class="flex flex-col gap-2">
             <div class="relative">
               <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-[var(--text-muted)] text-sm"></i>
-              <input id="catalog-search" type="search" class="glass-input rounded-xl pl-9 pr-9 py-2.5 w-full font-medium" placeholder="Search course name, code or acronym" aria-label="Search courses">
-              <button id="btn-clear-search" type="button" class="absolute right-3 top-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm hidden">
+              <input id="catalog-search" type="search" class="glass-input rounded-xl pl-9 pr-9 py-2.5 w-full font-medium" placeholder="Course name, code or acronym" aria-label="Search courses" enterkeyhint="search" autocomplete="off" spellcheck="false" aria-controls="catalog-list">
+              <button id="btn-clear-search" type="button" aria-label="Clear search" class="absolute right-3 top-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm hidden">
                 <i class="fa-solid fa-xmark"></i>
               </button>
             </div>
@@ -258,7 +258,7 @@
             </div>
           </div>
 
-          <div id="catalog-view-controls"><span>Explore your courses</span><button id="selected-only" type="button" aria-pressed="false">Selected only</button></div>
+          <div id="catalog-view-controls"><span id="catalog-search-status" role="status" aria-live="polite" aria-atomic="true">Explore your courses</span><button id="selected-only" type="button" aria-pressed="false">Selected only</button></div>
           <!-- Searchable Course List (Smooth, full-height feed) -->
           <div id="catalog-list" tabindex="0" aria-label="Available courses" class="flex flex-col gap-2.5"></div>
 
@@ -708,6 +708,12 @@ Wednesday 09:50-11:10</pre>
           <p id="min-gap-help" class="text-fluid-2xs text-[var(--text-muted)] font-medium">Minimum time between consecutive classes. No minimum allows back-to-back classes.</p>
         </div>
 
+        <div class="px-5 py-4 border-b border-brandBorder flex flex-col gap-2">
+          <label for="max-classes-per-day" class="text-fluid-2xs font-bold text-[var(--text-secondary)]">Maximum classes per day</label>
+          <input id="max-classes-per-day" type="number" min="1" step="1" inputmode="numeric" placeholder="No limit" aria-describedby="max-classes-help" class="glass-input rounded-xl px-3 py-2.5 text-fluid-xs font-semibold w-full">
+          <p id="max-classes-help" class="text-fluid-2xs text-[var(--text-muted)] font-medium">Count each scheduled meeting, including labs, as one class. Leave blank for no limit. If no routine fits, we’ll suggest the closest workable limit.</p>
+        </div>
+
         <!-- 4. Course &amp; faculty priority (Multi-Select Tick List) -->
         <div class="px-5 py-4 flex flex-col gap-3">
           <div class="flex items-center justify-between">
@@ -754,13 +760,15 @@ Wednesday 09:50-11:10</pre>
 
   <!-- Application Scripts -->
   <dialog id="shortlist-dialog" aria-labelledby="shortlist-title"><header><div><p class="planner-eyebrow">KEEP YOUR OPTIONS OPEN</p><h2 id="shortlist-title">Your shortlist</h2></div><button id="close-shortlist" type="button" aria-label="Close shortlist">✕</button></header><p>Save up to three routines to compare days, breaks and teachers. Stored on this browser.</p><div id="shortlist-content"></div></dialog>
-  <script src="app.js?v=9b186cc7aa60"></script>
+  <script src="app.js?v=1f46bb080624"></script>
   <script src="priority-sorter.js?v=aeb58fa450e5"></script>
-  <script src="preferences.js?v=3b0a0486b471"></script>
-  <script src="catalog.js?v=455e9011b2a5"></script>
+  <script src="preferences.js?v=51a94ee0f261"></script>
+  <script src="catalog.js?v=bc4f74ad2aa6"></script>
   <script src="mobile.js?v=308bcfe647d2"></script>
+  <script src="mobile-search.js?v=610cb89a7508"></script>
   <script src="mobile-schedule.js?v=ccdfa2ab2453"></script>
   <script src="planner.js?v=de7e0885f7ec"></script>
-  <script src="dropdowns.js?v=94737c726be2"></script>
+  <script src="dropdowns.js?v=7e4bcb94f721"></script>
+  <script src="routine-picker.js?v=f3ea31301d16"></script>
 </body>
 </html>

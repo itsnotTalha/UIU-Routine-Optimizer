@@ -353,3 +353,55 @@ body.filters-open { overflow:hidden !important; }
 .select-menu .select-page-previous, .select-menu .select-page-next { position:sticky; z-index:1; background:var(--bg-secondary); color:var(--accent-light); font-weight:600; font-size:12px; }
 .select-menu .select-page-previous { top:0; border-bottom:1px solid var(--border-color); }
 .select-menu .select-page-next { bottom:0; border-top:1px solid var(--border-color); }
+
+/* Routine selection stays compact; page navigation never overlaps choices. */
+#routine-picker {
+  position: fixed;
+  z-index: 100;
+  padding: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  box-shadow: 0 12px 36px #0004;
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+}
+#routine-picker header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+#routine-picker header strong { font-size: 13px; font-weight: 650; }
+#routine-picker header p { margin-top: 3px; font-size: 11px; color: var(--text-muted); }
+#routine-picker header button { width: 32px; height: 32px; border-radius: 8px; font-size: 22px; }
+.routine-number-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+#routine-picker .routine-number-grid button { height: 44px; border: 1px solid transparent; border-radius: 9px; background: var(--bg-tertiary); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+#routine-picker .routine-number-grid button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: white; }
+#routine-picker footer { display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid var(--border-color); padding-top: 10px; margin-top: 12px; }
+#routine-picker footer button { min-height: 40px; padding: 8px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; }
+#routine-picker button { cursor: pointer; touch-action: manipulation; }
+#routine-picker button:disabled { opacity: .35; cursor: default; }
+#routine-picker button:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 2px; }
+@media (hover: hover) {
+  #routine-picker button:not(:disabled):hover { box-shadow: inset 0 0 0 1px var(--accent-light); }
+}
+
+/* Mobile search owns the visible viewport, including while the keyboard is open. */
+#mobile-search-dialog { box-sizing:border-box; position:fixed; inset:0 0 auto; margin:0; width:100%; max-width:none; height:100dvh; max-height:none; padding:12px 16px max(12px,env(safe-area-inset-bottom)); border:0; background:var(--bg-primary); color:var(--text-primary); overflow:hidden; }
+#mobile-search-dialog[open] { display:flex; flex-direction:column; gap:8px; }
+#mobile-search-dialog::backdrop { background:var(--bg-primary); }
+#mobile-search-dialog > header { display:flex; justify-content:space-between; align-items:center; flex-shrink:0; }
+#mobile-search-title { font-size:17px; font-weight:700; }
+#mobile-search-done { min-height:44px; min-width:60px; padding:8px 12px; border-radius:10px; background:var(--badge-bg); color:var(--accent-light); font-size:14px; font-weight:650; }
+#mobile-search-dialog > :not(#catalog-list) { flex-shrink:0; }
+#mobile-search-dialog #catalog-view-controls { gap:10px; min-height:44px; }
+#mobile-search-dialog #selected-only { min-height:44px; flex-shrink:0; }
+#mobile-search-dialog #catalog-list { flex:1 1 0; min-height:0; max-height:none; overflow-y:auto !important; overscroll-behavior:contain; padding:2px 2px 12px; scroll-padding:8px; }
+#mobile-search-dialog #catalog-list .catalog-course-item { flex-shrink:0; padding:12px; border-radius:12px; background:var(--bg-card); content-visibility:visible; }
+#mobile-search-dialog #catalog-list .catalog-course-item p { font-size:14px; line-height:1.5; white-space:normal; overflow-wrap:anywhere; }
+#mobile-search-dialog .catalog-course-item > [role="button"] { min-height:56px; align-items:flex-start; }
+#mobile-search-dialog .catalog-course-item.selected { border-color:var(--accent); background:var(--badge-bg) !important; }
+@media(max-width:900px) {
+ html.mobile-search-open, html.mobile-search-open body { overflow:hidden !important; }
+ #catalog-search { font-size:16px; min-height:48px; padding-right:48px; }
+ #btn-clear-search { top:2px; right:2px; width:44px; height:44px; }
+ #catalog-search::-webkit-search-cancel-button { -webkit-appearance:none; }
+ #mobile-search-dialog .filter-chip { min-height:40px; }
+}

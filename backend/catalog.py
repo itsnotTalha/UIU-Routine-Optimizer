@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException, UploadFile
 from backend.models import CatalogOptimizeRequest
 from backend.optimizer import solve_schedules, schedule_score
 from backend.pdf_import import import_pdf
-from backend.preferences import preference_score, preference_report, filter_strict, availability_notices, penalties, gap_violations
+from backend.preferences import preference_score, preference_report, filter_strict, availability_notices, penalties, gap_violations, daily_class_limit_advice
 
 router = APIRouter()
 CATALOG_DIR = Path(__file__).parent / 'catalogs'
@@ -42,7 +42,7 @@ def ranked_schedules(courses, campus_days, preferences=None):
             _SCHEDULE_CACHE.move_to_end(key)
             return _SCHEDULE_CACHE[key][1]
     candidates = filter_strict(courses, preferences) if preferences and preferences.get('priority') == 'strict' else courses
-    schedules = solve_schedules(candidates, max_results=100_000, max_nodes=2_000_000, campus_days=campus_days)
+    schedules = solve_schedules(candidates, max_results=100_000, max_nodes=2_000_000, campus_days=campus_days, max_classes_per_day=(preferences or {}).get('max_classes_per_day'))
     if preferences and preferences.get('priority') == 'strict' and preferences.get('min_gap'):
         schedules = [s for s in schedules if gap_violations(s, preferences['min_gap'])[0] == 0]
     schedules.sort(key=(lambda s: preference_score(s, preferences)) if preferences else schedule_score)
@@ -181,6 +181,7 @@ def optimize_catalog(request: CatalogOptimizeRequest):
         latest_end=request.latest_end,
         priority=request.priority,
         min_gap=request.min_gap,
+        max_classes_per_day=request.max_classes_per_day,
         prioritized_faculties=request.prioritized_faculties or [],
         faculties={},
         course_order=[]
@@ -206,7 +207,8 @@ def optimize_catalog(request: CatalogOptimizeRequest):
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     page = schedules[request.offset:request.offset + request.limit]
-    return dict(schedules=page, total=len(schedules), offset=request.offset,
+    return dict(daily_class_limit=daily_class_limit_advice(courses, request.campus_days, preferences) if not schedules else None,
+                schedules=page, total=len(schedules), offset=request.offset,
                 preference_reports=[preference_report(s, preferences) for s in page],
                 notices=availability_notices(courses, preferences),
                 exact_matches=sum(penalties(s, preferences) == (0, 0) for s in schedules),
