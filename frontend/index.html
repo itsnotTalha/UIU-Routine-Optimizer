@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>UIU Routine Optimizer — Conflict-Free Schedule Generator</title>
-  
+
   <!-- Mobile & PWA Capabilities -->
   <meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#FAFAFA" media="(prefers-color-scheme: light)">
@@ -31,7 +31,8 @@
   <!-- DOM capture helper for schedule downloads -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=f8a1527e3f36">
+  <link rel="stylesheet" href="planner.css?v=3a35e91974d6">
   <script>
     tailwind.config = {
       theme: {
@@ -52,7 +53,7 @@
   <!-- Top Navigation Header -->
   <header class="border-b border-brandBorder py-3 px-4 lg:px-8 glass sticky top-0 z-50">
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
-      
+
       <!-- Brand Logo -->
       <div class="flex items-center gap-3">
         <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-orange-600 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/25 flex-shrink-0">
@@ -81,14 +82,14 @@
         <i class="fa-solid fa-chevron-right text-fluid-2xs text-[var(--text-muted)] opacity-60"></i>
         <div id="step-nav-3" class="step-item text-[var(--text-muted)] flex items-center gap-1.5 font-medium px-2 py-0.5 rounded-lg">
           <span class="step-badge h-5 w-5 rounded-full bg-[var(--pill-bg)] text-fluid-2xs font-bold flex items-center justify-center">3</span>
-          <span>Schedules</span>
+          <span>Routines</span>
         </div>
       </nav>
 
       <button id="mobile-menu-open" type="button" aria-label="Open menu" aria-controls="mobile-menu" aria-expanded="false" class="md:hidden px-3 py-2 rounded-xl bg-[var(--bg-subtle)] hover:bg-[var(--bg-card-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-brandBorder flex items-center justify-center text-base cursor-pointer shadow-sm"><i class="fa-solid fa-bars"></i></button>
       <!-- Right Actions (Theme Toggle, Reset, GitHub - Desktop Only) -->
       <div id="header-secondary-actions" class="hidden md:flex items-center gap-2.5">
-        
+
         <!-- Light / Dark Theme Switcher Button -->
         <button id="btn-theme-toggle" type="button" title="Switch Theme (Light/Dark)" aria-label="Toggle light or dark theme" class="px-2.5 py-1.5 rounded-xl bg-[var(--bg-subtle)] hover:bg-[var(--bg-card-hover)] border border-brandBorder transition-all flex items-center justify-center shadow-sm">
           <i id="theme-toggle-icon" class="fa-solid fa-sun text-amber-400 text-sm"></i>
@@ -109,7 +110,7 @@
   <!-- Contextual Workspace Toolbar (Option 1 Unified Toolbar) -->
   <section class="workspace-nav-bar px-4 lg:px-8 py-3 border-b border-brandBorder bg-[var(--bg-card)] sticky top-[57px] z-40 backdrop-blur-md">
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-3 relative">
-      
+
       <!-- Left: Primary Navigation Tabs (Courses & Faculty vs Schedules) -->
       <nav class="flex items-center gap-1.5 sm:gap-2.5" aria-label="Workspace view">
         <button type="button" data-workspace="courses" aria-pressed="true" class="workspace-tab">
@@ -120,9 +121,10 @@
         </button>
         <button type="button" data-workspace="schedules" aria-pressed="false" class="workspace-tab">
           <i class="fa-regular fa-calendar-check text-sm sm:text-base"></i>
-          <span>Schedules</span>
+          <span>Routines</span>
           <span id="tab-schedule-badge" class="tab-badge hidden">0</span>
         </button>
+        <button type="button" id="planner-preferences" class="workspace-tab"><i class="fa-solid fa-sliders"></i><span>Preferences</span></button>
       </nav>
 
       <!-- Right: Active Dataset Pill Dropdown Trigger -->
@@ -135,7 +137,7 @@
 
         <!-- Active Routine Source Dropdown Card (Interactive Source Menu) -->
         <div id="routine-dropdown-menu" class="hidden absolute right-0 top-full mt-2 w-[340px] sm:w-[400px] rounded-2xl bg-[var(--bg-card)] border border-brandBorder p-4 shadow-2xl backdrop-blur-xl z-50 flex flex-col gap-3.5">
-          
+
           <div class="flex items-center justify-between">
             <span class="text-fluid-xs font-bold text-[var(--text-primary)]">Active routine source</span>
             <span id="pdf-origin-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/60">Official</span>
@@ -218,89 +220,11 @@
   </section>
 
   <main id="workspace" class="flex-1 max-w-7xl mx-auto w-full p-3 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5">
-    
+
+    <div id="planner-intro"><div><p class="planner-eyebrow">YOUR SEMESTER, YOUR WAY</p><h1>Build a week that works.</h1><p>Pick your courses. Choose your teachers. Find your best routine.</p></div><button type="button" id="planner-shortlist-open">Saved routines <span id="saved-count">0</span></button></div>
     <!-- Left Input & Control Station (col-span-5) -->
     <aside id="input-workspace" class="lg:col-span-5 flex flex-col gap-3">
 
-      <details id="schedule-preferences" class="glass rounded-xl overflow-hidden">
-        <summary class="cursor-pointer font-bold text-fluid-xs flex items-center justify-between select-none px-3 sm:px-4 py-3">
-          <span class="flex items-center gap-2 text-[var(--text-primary)]"><i class="fa-solid fa-sliders text-orange-500"></i> Routine Constraints</span>
-          <span id="preferences-summary" class="text-fluid-2xs font-semibold text-[var(--text-muted)]">Any · All preferences</span>
-        </summary>
-        <div class="preference-fields flex flex-col gap-0 pt-0 divide-y divide-[var(--border-color)]">
-
-          <!-- Sub-group 1: Days -->
-          <div class="px-3 sm:px-4 py-3 flex flex-col gap-2">
-            <span class="text-fluid-2xs font-extrabold uppercase tracking-wider text-orange-500 flex items-center gap-1.5"><i class="fa-solid fa-calendar-days text-[10px]"></i> Days</span>
-            <label for="campus-days" class="flex flex-col gap-1 text-fluid-2xs font-bold text-[var(--text-secondary)]">
-              Campus days per week
-              <select id="campus-days" class="glass-input rounded-xl px-3 py-2 text-fluid-xs font-semibold">
-                <option value="">Any number of days</option>
-                <option value="2">Exactly 2 days</option>
-                <option value="3">Exactly 3 days</option>
-                <option value="4">Exactly 4 days</option>
-                <option value="5">Exactly 5 days</option>
-              </select>
-            </label>
-          </div>
-
-          <!-- Sub-group 2: Time Window -->
-          <div class="px-3 sm:px-4 py-3 flex flex-col gap-2">
-            <span class="text-fluid-2xs font-extrabold uppercase tracking-wider text-orange-500 flex items-center gap-1.5"><i class="fa-solid fa-clock text-[10px]"></i> Time Window</span>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div class="flex flex-col gap-1">
-                <label for="earliest-start-select" class="text-fluid-2xs font-bold text-[var(--text-secondary)]">Classes start at or after</label>
-                <div class="flex items-center gap-1.5">
-                  <select id="earliest-start-select" class="glass-input rounded-xl px-3 py-2 text-fluid-xs font-semibold flex-1">
-                    <option value="">Any start time</option>
-                  </select>
-                  <input id="earliest-start" type="time" step="60" class="glass-input rounded-xl px-2 py-1.5 text-fluid-xs font-semibold hidden w-28">
-                </div>
-              </div>
-              <div class="flex flex-col gap-1">
-                <label for="latest-end-select" class="text-fluid-2xs font-bold text-[var(--text-secondary)]">Classes finish at or before</label>
-                <div class="flex items-center gap-1.5">
-                  <select id="latest-end-select" class="glass-input rounded-xl px-3 py-2 text-fluid-xs font-semibold flex-1">
-                    <option value="">Any finish time</option>
-                  </select>
-                  <input id="latest-end" type="time" step="60" class="glass-input rounded-xl px-2 py-1.5 text-fluid-xs font-semibold hidden w-28">
-                </div>
-              </div>
-            </div>
-            <button id="clear-time-preferences" type="button" class="self-start px-3 py-1.5 text-fluid-2xs font-bold rounded-lg bg-[var(--bg-subtle)] hover:bg-[var(--bg-card-hover)] border border-brandBorder text-[var(--text-muted)] hover:text-red-400 transition-colors">
-              <i class="fa-solid fa-xmark text-[10px]"></i> Clear Times
-            </button>
-          </div>
-
-          <!-- Sub-group 3: Priority -->
-          <div class="px-3 sm:px-4 py-3 flex flex-col gap-2">
-            <span class="text-fluid-2xs font-extrabold uppercase tracking-wider text-orange-500 flex items-center gap-1.5"><i class="fa-solid fa-star text-[10px]"></i> Priority</span>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <label class="flex flex-col gap-1 text-fluid-2xs font-bold text-[var(--text-secondary)]">
-                Optimization priority
-                <select id="preference-priority" class="glass-input rounded-xl px-3 py-2 text-fluid-xs font-semibold">
-                  <option value="strict">Require all preferences (Strict)</option>
-                  <option value="time_first">Time window first, faculty backup</option>
-                  <option value="faculty_first">Faculty preference first, time backup</option>
-                </select>
-              </label>
-              <label class="flex flex-col gap-1 text-fluid-2xs font-bold text-[var(--text-secondary)]" id="global-faculty-priority-label">
-                Prioritize faculty
-                <select id="global-faculty-priority-select" class="glass-input rounded-xl px-3 py-2 text-fluid-xs font-semibold" title="Globally prioritize a specific faculty across all courses">
-                  <option value="">No global preference</option>
-                </select>
-              </label>
-            </div>
-            <p id="priority-help" class="text-fluid-2xs text-[var(--text-muted)] font-medium">Only show routines within your time window and selected faculty.</p>
-          </div>
-
-        </div>
-        <div id="constraint-faculty-summary" aria-live="polite" class="hidden px-3 sm:px-4 pb-3">
-          <h3 class="text-fluid-2xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1">Selected faculty preferences</h3>
-          <p class="constraint-hint text-fluid-2xs text-[var(--text-muted)]">These are the faculty choices used by the priority setting above.</p>
-          <div id="constraint-faculty-list" class="mt-1"></div>
-        </div>
-      </details>
       <!-- PDF Mode Container -->
       <div id="pdf-container" class="flex flex-col gap-3">
 
@@ -309,7 +233,7 @@
           <div class="flex items-center justify-between">
             <h2 class="text-fluid-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
               <span class="h-5 w-5 rounded-full bg-orange-500/20 text-orange-400 text-fluid-2xs flex items-center justify-center font-bold">1</span>
-              Choose Courses
+              Course catalogue
             </h2>
             <span id="catalog-count" class="text-fluid-xs font-bold text-orange-500">0 selected</span>
           </div>
@@ -318,7 +242,7 @@
           <div class="flex flex-col gap-2">
             <div class="relative">
               <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-[var(--text-muted)] text-sm"></i>
-              <input id="catalog-search" type="search" class="glass-input rounded-xl pl-9 pr-9 py-2.5 w-full font-medium" placeholder="Search code (CSE 1111), acronym (AI, OOP, SPL, DLD), or name...">
+              <input id="catalog-search" type="search" class="glass-input rounded-xl pl-9 pr-9 py-2.5 w-full font-medium" placeholder="Search course name, code or acronym" aria-label="Search courses">
               <button id="btn-clear-search" type="button" class="absolute right-3 top-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm hidden">
                 <i class="fa-solid fa-xmark"></i>
               </button>
@@ -330,23 +254,10 @@
                 <button type="button" data-program="" class="filter-chip active px-3 py-1.5 rounded-lg font-bold text-fluid-2xs">All Programs</button>
               </div>
 
-              <!-- Quick Time Filter Pill -->
-              <button id="btn-toggle-time-filter" type="button" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--bg-subtle)] border border-brandBorder text-fluid-2xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex-shrink-0">
-                <i class="fa-solid fa-clock text-orange-500"></i>
-                <span id="time-filter-pill-label">Time: Any</span>
-              </button>
-
-              <!-- Quick Faculty Priority Option Pill -->
-              <div class="relative flex-shrink-0 flex items-center">
-                <select id="quick-faculty-priority" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--bg-subtle)] border border-brandBorder text-fluid-2xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer outline-none transition-all" title="Faculty Priority Setting">
-                  <option value="strict">🎯 Faculty: Strict (Required)</option>
-                  <option value="faculty_first">⭐ Faculty: Prioritize 1st Choice</option>
-                  <option value="time_first">⏰ Time 1st, Faculty Backup</option>
-                </select>
-              </div>
             </div>
           </div>
 
+          <div id="catalog-view-controls"><span>Explore your courses</span><button id="selected-only" type="button" aria-pressed="false">Selected only</button></div>
           <!-- Searchable Course List (Smooth, full-height feed) -->
           <div id="catalog-list" tabindex="0" aria-label="Available courses" class="flex flex-col gap-2.5"></div>
 
@@ -358,7 +269,7 @@
               </h3>
               <button id="btn-clear-selected" type="button" class="text-fluid-2xs font-semibold text-[var(--text-muted)] hover:text-red-500 transition-colors">Clear all</button>
             </div>
-            
+
             <div id="selected-courses" tabindex="0" aria-label="Selected courses and faculty preferences" class="flex flex-col gap-2.5 max-h-[300px] overflow-y-auto pr-1">
               <p class="text-fluid-xs text-[var(--text-muted)] italic py-3 text-center">Select courses above to configure faculty preferences.</p>
             </div>
@@ -422,90 +333,53 @@ Wednesday 09:50-11:10</pre>
 
     <!-- Right Output & Timetable Station (col-span-7) -->
     <section id="schedule-workspace" class="lg:col-span-7 flex flex-col gap-4">
-      
-      <!-- Visual Onboarding Empty State -->
-      <div id="empty-state" class="glass rounded-2xl p-6 lg:p-10 flex-1 flex flex-col items-center justify-center text-center gap-6 min-h-[480px]">
-        
-        <div class="flex flex-col items-center gap-2 max-w-lg">
-          <div class="h-16 w-16 rounded-2xl bg-gradient-to-tr from-orange-600/30 to-orange-600/30 border border-orange-500/30 flex items-center justify-center text-orange-500 text-2xl shadow-xl shadow-orange-500/10 mb-2">
-            <i class="fa-solid fa-calendar-check"></i>
-          </div>
-          <h2 class="text-fluid-xl font-extrabold text-[var(--text-primary)] tracking-tight">Build Your Perfect UIU Routine</h2>
-          <p class="text-fluid-sm text-[var(--text-muted)] leading-relaxed">
-            Generate clash-free weekly combinations in seconds. Minimize campus trips and eliminate waiting between classes.
-          </p>
-        </div>
 
-        <!-- 3 Visual Step Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full max-w-2xl text-left">
-          
-          <div class="glass-card rounded-xl p-3.5 flex flex-col gap-2">
-            <div class="flex items-center gap-2">
-              <span class="h-6 w-6 rounded-lg bg-orange-500/20 text-orange-500 text-fluid-xs font-bold flex items-center justify-center">1</span>
-              <span class="text-fluid-xs font-bold text-[var(--text-primary)]">Import Routine</span>
-            </div>
-            <p class="text-fluid-2xs text-[var(--text-muted)]">Upload your UIU class routine PDF.</p>
-          </div>
-
-          <div class="glass-card rounded-xl p-3.5 flex flex-col gap-2">
-            <div class="flex items-center gap-2">
-              <span class="h-6 w-6 rounded-lg bg-orange-500/20 text-orange-500 text-fluid-xs font-bold flex items-center justify-center">2</span>
-              <span class="text-fluid-xs font-bold text-[var(--text-primary)]">Pick Courses</span>
-            </div>
-            <p class="text-fluid-2xs text-[var(--text-muted)]">Select desired courses &amp; filter favorite teachers.</p>
-          </div>
-
-          <div class="glass-card rounded-xl p-3.5 flex flex-col gap-2">
-            <div class="flex items-center gap-2">
-              <span class="h-6 w-6 rounded-lg bg-emerald-500/20 text-emerald-500 text-fluid-xs font-bold flex items-center justify-center">3</span>
-              <span class="text-fluid-xs font-bold text-[var(--text-primary)]">Explore Grid</span>
-            </div>
-            <p class="text-fluid-2xs text-[var(--text-muted)]">Browse conflict-free combinations and export as PNG.</p>
-          </div>
-
-        </div>
-
-
+      <div id="empty-state" class="glass planner-empty">
+        <span class="planner-empty-icon"><i class="fa-regular fa-calendar"></i></span>
+        <p class="planner-eyebrow">A LITTLE PLANNING GOES A LONG WAY</p>
+        <h2>Your next week starts here.</h2>
+        <p>Choose your courses and preferred teachers, then generate clash-free routines. Save the ones you like to compare later.</p>
+        <button type="button" data-workspace="courses">Choose courses <span aria-hidden="true">→</span></button>
       </div>
 
-      <!-- Error State -->
-      <div id="error-state" class="hidden glass border-red-500/30 bg-red-500/10 rounded-xl p-4 flex items-start gap-3">
-        <div class="h-9 w-9 rounded-lg bg-red-500/20 flex items-center justify-center text-red-500 flex-shrink-0">
-          <i class="fa-solid fa-circle-exclamation text-lg"></i>
+      <!-- Error / Conflict / No-Matches State -->
+      <div id="error-state" class="hidden glass rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center text-center gap-4 border border-rose-500/25 bg-rose-500/5 my-auto min-h-[340px]">
+        <div class="h-14 w-14 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-500 text-2xl shadow-lg shadow-rose-500/10">
+          <i class="fa-solid fa-sliders"></i>
         </div>
-        <div class="flex-1">
-          <h4 class="font-bold text-red-500 text-fluid-xs">Optimization Conflict</h4>
-          <p id="error-message" class="text-fluid-2xs text-red-600 dark:text-red-300 mt-0.5 leading-relaxed font-medium"></p>
+        <div class="max-w-md flex flex-col gap-1.5">
+          <h3 class="text-fluid-base font-extrabold text-[var(--text-primary)]">No Matching Routines Found</h3>
+          <p id="error-message" class="text-fluid-xs text-[var(--text-secondary)] leading-relaxed"></p>
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-2.5 mt-2">
+          <button id="btn-error-open-filters" type="button" class="btn-glow px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white text-fluid-xs font-bold transition-all flex items-center gap-2 shadow-md shadow-orange-600/25 cursor-pointer">
+            <i class="fa-solid fa-sliders"></i> Adjust Filters
+          </button>
+          <button id="btn-error-reset-filters" type="button" class="px-4 py-2.5 rounded-xl border border-brandBorder bg-[var(--bg-subtle)] hover:bg-[var(--bg-card-hover)] text-[var(--text-primary)] text-fluid-xs font-bold transition-all flex items-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-arrow-rotate-left text-orange-500"></i> Reset Filters
+          </button>
+          <button id="btn-error-to-courses" type="button" class="px-3.5 py-2.5 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] text-fluid-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer">
+            <i class="fa-solid fa-arrow-left"></i> Edit Courses
+          </button>
         </div>
       </div>
 
       <!-- Results View -->
       <div id="results-view" class="hidden flex-1 flex flex-col gap-3.5">
-        
+
         <!-- Results Stats & Controls Bar -->
-        <div class="glass rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          
-          <div class="flex flex-wrap items-center gap-2.5">
-            <span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-fluid-2xs font-bold flex items-center gap-1.5">
-              <i class="fa-solid fa-circle-check"></i> Conflict-Free
-            </span>
-            <p id="combinations-count" class="text-fluid-xs text-[var(--text-primary)] font-bold">Found 0 combinations.</p>
+        <div id="results-summary">
+          <div><p class="planner-eyebrow">YOUR POSSIBILITIES</p><h1>Find your favourite week.</h1><p id="combinations-count" role="status">Finding routines…</p></div>
+          <div class="planner-result-actions">
+            <button id="btn-open-filters" type="button"><i class="fa-solid fa-sliders"></i> Refine <span id="active-filters-badge" class="hidden">0</span></button>
+            <button id="save-routine" type="button" aria-pressed="false"><i class="fa-regular fa-bookmark"></i> Save</button>
+            <button id="compare-routines" type="button">Shortlist <span id="compare-count">0</span></button>
+            <button id="btn-download-schedule" type="button" disabled><i class="fa-solid fa-download"></i> PNG</button>
           </div>
-
-          <!-- Schedule Metrics Badges -->
-          <div class="flex items-center gap-2.5">
-            <div id="schedule-metrics" class="px-3 py-1.5 rounded-xl bg-[var(--bg-subtle)] border border-brandBorder text-orange-500 font-bold text-fluid-2xs flex items-center gap-1.5">
-              <!-- e.g. 3 campus days · 40m gap -->
-            </div>
-            <button id="btn-download-schedule" disabled class="px-3.5 py-1.5 text-fluid-xs rounded-xl border border-orange-500/30 bg-orange-600/15 text-orange-500 font-bold hover:bg-orange-600 hover:text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-sm">
-              <i class="fa-solid fa-download"></i> PNG
-            </button>
-          </div>
-
+          <p id="planner-save-status" role="status"></p>
         </div>
-
         <!-- Options Selector Pills & Pagination -->
-        <div class="glass rounded-xl p-3 flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+        <div hidden id="desktop-option-bar" class="glass rounded-xl p-3 flex flex-col md:flex-row md:items-center justify-between gap-2.5">
           <!-- Option Pills -->
           <div class="flex items-center gap-2 overflow-x-auto py-1 w-full min-h-[40px]" id="option-selector-container">
             <!-- Dynamically generated schedule option pills -->
@@ -527,9 +401,23 @@ Wednesday 09:50-11:10</pre>
           <strong id="preference-report-title"></strong>
           <ul id="preference-report-list"></ul>
         </div>
+        <div id="routine-toolbar">
+        <div id="mobile-routine-nav" aria-label="Routine navigation">
+          <button id="routine-previous" type="button" aria-label="Previous routine"><i class="fa-solid fa-chevron-left"></i></button>
+          <label for="mobile-routine-select"><span id="mobile-routine-position" aria-live="polite">Your routines</span><select id="mobile-routine-select" aria-label="Choose a routine on this page"></select></label>
+          <button id="routine-next" type="button" aria-label="Next routine"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+        <div id="planner-metrics"><div id="schedule-metrics"></div></div>
+        <div id="mobile-calendar-controls">
+          <div><h3>Weekly overview</h3><p id="mobile-week-caption"></p></div>
+          <div class="calendar-view-toggle" aria-label="Schedule view"><button type="button" data-calendar-view="agenda" aria-pressed="true">Agenda</button><button type="button" data-calendar-view="grid" aria-pressed="false">Week grid</button></div>
+        </div>
+        </div>
+        <nav id="planner-days" aria-label="Choose a day"></nav>
+        <div id="mobile-agenda" aria-label="Classes by day"></div>
         <!-- Weekly Timetable Card -->
         <div id="timetable-panel" class="glass rounded-xl p-4 flex flex-col gap-3 overflow-hidden">
-          
+
           <div class="flex items-center justify-between text-fluid-xs text-[var(--text-muted)] px-1">
             <span class="font-bold uppercase tracking-wider text-[var(--text-primary)] text-fluid-xs flex items-center gap-2">
               <i class="fa-solid fa-calendar-week text-orange-500"></i> Weekly Timetable
@@ -544,7 +432,7 @@ Wednesday 09:50-11:10</pre>
           <!-- Calendar Export Target (Transposed) -->
           <div id="calendar-scroll" tabindex="0" aria-label="Weekly timetable, scroll to view more" class="overflow-x-auto w-full border border-brandBorder rounded-xl bg-[var(--calendar-bg)]">
             <div id="calendar-export-target" class="min-w-[820px] p-3.5">
-              
+
               <!-- Calendar Header (Times) -->
               <div class="calendar-header-row">
                 <div class="pl-4 flex items-center text-fluid-2xs font-bold text-[var(--text-muted)]">DAY \ TIME</div>
@@ -599,7 +487,7 @@ Wednesday 09:50-11:10</pre>
   <!-- Details Modal -->
   <div id="details-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black/60 backdrop-blur-sm transition-all duration-200">
     <div class="glass max-w-sm w-full mx-4 rounded-2xl border border-brandBorder shadow-2xl p-5 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-150">
-      
+
       <div class="flex justify-between items-start">
         <div>
           <span class="text-fluid-2xs uppercase font-bold text-orange-500">Class Details</span>
@@ -650,7 +538,7 @@ Wednesday 09:50-11:10</pre>
   <!-- Mobile Sidebar Drawer -->
   <dialog id="mobile-menu" class="mobile-drawer" aria-labelledby="mobile-menu-title">
     <div class="mobile-drawer-inner flex flex-col h-full gap-5">
-      
+
       <!-- Drawer Header -->
       <div class="flex items-center justify-between pb-3 border-b border-brandBorder">
         <div class="flex items-center gap-2.5">
@@ -666,11 +554,12 @@ Wednesday 09:50-11:10</pre>
 
       <!-- Drawer Content -->
       <div class="flex-1 overflow-y-auto flex flex-col gap-4">
-        
+
         <!-- Quick Actions Group -->
         <div class="flex flex-col gap-2">
           <span class="text-fluid-2xs uppercase font-extrabold tracking-wider text-[var(--text-muted)] px-1">Settings &amp; Tools</span>
-          
+
+          <button id="drawer-shortlist" type="button" class="planner-drawer-action">☆ Saved routines</button>
           <button id="drawer-theme-toggle" type="button" class="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-subtle)] hover:bg-[var(--bg-card-hover)] border border-brandBorder transition-all text-left cursor-pointer">
             <div class="flex items-center gap-3">
               <i id="drawer-theme-icon" class="fa-solid fa-sun text-amber-400 text-base"></i>
@@ -678,23 +567,6 @@ Wednesday 09:50-11:10</pre>
             </div>
             <span id="drawer-theme-label" class="text-fluid-2xs font-semibold text-[var(--text-muted)]">Light / Dark</span>
           </button>
-
-          <!-- Faculty Priority Option in Mobile Drawer -->
-          <div class="p-3 rounded-xl bg-[var(--bg-subtle)] border border-brandBorder flex flex-col gap-1.5">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <i class="fa-solid fa-user-graduate text-orange-500 text-sm"></i>
-                <span class="text-fluid-xs font-bold text-[var(--text-primary)]">Faculty Priority Option</span>
-              </div>
-              <span class="text-[10px] font-bold text-orange-400 uppercase tracking-wider">Rule</span>
-            </div>
-            <select id="drawer-faculty-priority" class="glass-input rounded-lg px-2.5 py-2 text-fluid-xs font-semibold w-full mt-1">
-              <option value="strict">Strict (Only preferred faculties)</option>
-              <option value="faculty_first">Faculty First (Prioritize #1 choice)</option>
-              <option value="time_first">Time First (Time window over faculty)</option>
-            </select>
-            <p class="text-fluid-2xs text-[var(--text-muted)] font-medium">Controls how routines are sorted when multiple preferred faculties are chosen.</p>
-          </div>
 
           <button id="drawer-reset-all" type="button" class="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-subtle)] hover:bg-[var(--bg-card-hover)] border border-brandBorder text-rose-400 hover:text-rose-300 transition-all text-left cursor-pointer">
             <i class="fa-solid fa-arrow-rotate-left text-base"></i>
@@ -741,6 +613,140 @@ Wednesday 09:50-11:10</pre>
 
     </div>
   </dialog>
+
+  <!-- Filters Slide-Over Drawer (Advanced Filtering for Schedules) -->
+  <div id="filters-drawer-backdrop" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden transition-opacity duration-300">
+    <div id="filters-drawer" role="dialog" aria-modal="true" aria-label="Scheduling preferences" class="fixed inset-y-0 right-0 w-full max-w-md bg-[var(--bg-primary)] border-l border-brandBorder shadow-2xl flex flex-col z-50 transform translate-x-full transition-transform duration-300 ease-out">
+
+      <!-- Drawer Header -->
+      <div class="px-5 py-4 border-b border-brandBorder flex items-center justify-between gap-3 bg-[var(--bg-card)]">
+        <div class="flex items-center gap-3">
+          <div class="h-10 w-10 rounded-xl bg-orange-500/15 border border-orange-500/20 text-orange-500 flex items-center justify-center font-bold text-base shadow-sm">
+            <i class="fa-solid fa-sliders"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-extrabold text-fluid-sm text-[var(--text-primary)] leading-tight">Preferences</h3>
+              <span id="drawer-active-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/30 hidden">0 active</span>
+            </div>
+            <p id="preferences-summary" class="text-fluid-2xs text-[var(--text-muted)] font-medium">Fine-tune days, time windows, breaks &amp; teachers</p>
+          </div>
+        </div>
+        <button id="btn-close-filters" type="button" aria-label="Close filters" class="h-9 w-9 rounded-xl bg-[var(--bg-subtle)] hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center justify-center transition-all cursor-pointer">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Drawer Body (Scrollable filter controls) -->
+      <div class="flex-1 overflow-y-auto divide-y divide-[var(--border-color)]">
+
+        <!-- 1. Campus Days -->
+        <div class="px-5 py-4 flex flex-col gap-2">
+          <span class="text-fluid-2xs font-extrabold uppercase tracking-wider text-orange-500 flex items-center gap-1.5">
+            <i class="fa-solid fa-calendar-days text-[11px]"></i> Campus Days
+          </span>
+          <div class="flex flex-col gap-1.5">
+            <label for="campus-days" class="text-fluid-2xs font-bold text-[var(--text-secondary)]">Days per week</label>
+            <select id="campus-days" class="glass-input rounded-xl px-3 py-2.5 text-fluid-xs font-semibold w-full">
+              <option value="">Any days</option>
+              <option value="2">2 days</option>
+              <option value="3">3 days</option>
+              <option value="4">4 days</option>
+              <option value="5">5 days</option>
+            </select>
+          </div>
+          <p class="text-fluid-2xs text-[var(--text-muted)] font-medium">Choose the exact number of campus days each week.</p>
+        </div>
+
+        <!-- 2. Time Window -->
+        <div class="px-5 py-4 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <span class="text-fluid-2xs font-extrabold uppercase tracking-wider text-orange-500 flex items-center gap-1.5">
+              <i class="fa-solid fa-clock text-[11px]"></i> Time Window
+            </span>
+            <button id="clear-time-preferences" type="button" class="text-fluid-2xs font-semibold text-[var(--text-muted)] hover:text-red-400 transition-colors flex items-center gap-1 cursor-pointer">
+              <i class="fa-solid fa-xmark text-[10px]"></i> Clear
+            </button>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <div class="flex flex-col gap-1.5">
+              <label for="earliest-start-select" class="text-fluid-2xs font-bold text-[var(--text-secondary)]">Earliest start</label>
+              <select id="earliest-start-select" class="glass-input rounded-xl px-3 py-2.5 text-fluid-xs font-semibold w-full">
+                <option value="">Any time</option>
+              </select>
+              <input id="earliest-start" aria-label="Custom earliest start" type="time" step="60" class="glass-input rounded-xl px-3 py-2 text-fluid-xs font-semibold hidden w-full mt-1.5">
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label for="latest-end-select" class="text-fluid-2xs font-bold text-[var(--text-secondary)]">Latest finish</label>
+              <select id="latest-end-select" class="glass-input rounded-xl px-3 py-2.5 text-fluid-xs font-semibold w-full">
+                <option value="">Any time</option>
+              </select>
+              <input id="latest-end" aria-label="Custom latest finish" type="time" step="60" class="glass-input rounded-xl px-3 py-2 text-fluid-xs font-semibold hidden w-full mt-1.5">
+            </div>
+          </div>
+          <p class="text-fluid-2xs text-[var(--text-muted)] font-medium">Classes must start at or after the earliest time and finish at or before the latest time.</p>
+        </div>
+
+        <!-- 3. Minimum Class Gap Period -->
+        <div class="px-5 py-4 flex flex-col gap-2">
+          <span class="text-fluid-2xs font-extrabold uppercase tracking-wider text-orange-500 flex items-center gap-1.5">
+            <i class="fa-solid fa-hourglass-half text-[11px]"></i> Break Between Classes
+          </span>
+          <div class="flex flex-col gap-1.5">
+            <label for="min-gap-select" class="text-fluid-2xs font-bold text-[var(--text-secondary)]">Minimum break</label>
+            <select id="min-gap-select" class="glass-input rounded-xl px-3 py-2.5 text-fluid-xs font-semibold w-full">
+              <option value="">No minimum</option>
+              <option value="10">10 min</option>
+              <option value="15">15 min</option>
+              <option value="20">20 min</option>
+              <option value="30">30 min</option>
+              <option value="40">40 min</option>
+              <option value="60">1 hr</option>
+              <option value="90">1 hr 30 min</option>
+              <option value="120">2 hr</option>
+            </select>
+          </div>
+          <p class="text-fluid-2xs text-[var(--text-muted)] font-medium">Minimum time between consecutive classes. No minimum allows back-to-back classes.</p>
+        </div>
+
+        <!-- 4. Course &amp; faculty priority (Multi-Select Tick List) -->
+        <div class="px-5 py-4 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-fluid-2xs font-extrabold uppercase tracking-wider text-orange-500 flex items-center gap-1.5">
+                <i class="fa-solid fa-user-check text-[11px]"></i> Course &amp; faculty priority
+              </span>
+              <p class="text-fluid-2xs text-[var(--text-muted)] font-medium mt-0.5">Drag courses to rank which faculty preferences matter most. Drag teachers within each course to rank them. Top is first priority; all courses remain included.</p>
+            </div>
+
+          </div>
+
+          <!-- Faculty tick cards grid -->
+          <div id="global-faculty-checklist" class="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1">
+            <!-- Dynamically populated -->
+          </div>
+          <p id="priority-order-status" role="status" aria-live="polite" class="text-fluid-2xs text-orange-500"></p>
+          <div id="no-faculty-selected-hint" class="text-fluid-2xs text-[var(--text-muted)] italic py-3 text-center">
+            Select courses first to see and prioritize available faculty.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Drawer Footer Action Bar -->
+      <div class="p-4 border-t border-brandBorder bg-[var(--bg-card)] flex items-center justify-between gap-3">
+        <button id="btn-reset-filters" type="button" class="py-2.5 px-4 rounded-xl border border-brandBorder hover:bg-[var(--bg-card-hover)] text-[var(--text-secondary)] hover:text-red-400 font-bold text-fluid-xs transition-all flex items-center gap-1.5 cursor-pointer">
+          <i class="fa-solid fa-arrow-rotate-left text-xs"></i> Reset All
+        </button>
+        <button id="btn-apply-filters" type="button" class="btn-glow flex-1 py-2.5 px-5 rounded-xl bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold text-fluid-xs transition-all flex items-center justify-center gap-2 shadow-md shadow-orange-600/30 cursor-pointer">
+          <i class="fa-solid fa-check"></i> Apply Filters
+        </button>
+      </div>
+
+    </div>
+  </div>
   <!-- Mobile Fixed Optimize Bar (shown on mobile only when catalog panel is active) -->
   <div id="mobile-optimize-bar" class="mobile-optimize-bar">
     <div class="mobile-optimize-bar-inner">
@@ -752,9 +758,14 @@ Wednesday 09:50-11:10</pre>
   </div>
 
   <!-- Application Scripts -->
-  <script src="app.js"></script>
-  <script src="preferences.js"></script>
-  <script src="catalog.js"></script>
-  <script src="mobile.js"></script>
+  <dialog id="shortlist-dialog" aria-labelledby="shortlist-title"><header><div><p class="planner-eyebrow">KEEP YOUR OPTIONS OPEN</p><h2 id="shortlist-title">Your shortlist</h2></div><button id="close-shortlist" type="button" aria-label="Close shortlist">✕</button></header><p>Save up to three routines to compare days, breaks and teachers. Stored on this browser.</p><div id="shortlist-content"></div></dialog>
+  <script src="app.js?v=9b186cc7aa60"></script>
+  <script src="priority-sorter.js?v=aeb58fa450e5"></script>
+  <script src="preferences.js?v=3c98fe103f39"></script>
+  <script src="catalog.js?v=48b21cf2db9f"></script>
+  <script src="mobile.js?v=308bcfe647d2"></script>
+  <script src="mobile-schedule.js?v=a8f883522876"></script>
+  <script src="planner.js?v=fa08840c9abf"></script>
+  <script src="dropdowns.js?v=23e9113e2c2f"></script>
 </body>
 </html>

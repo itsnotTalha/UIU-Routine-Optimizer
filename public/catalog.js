@@ -140,7 +140,6 @@ function invalidateCatalogResults() {
   pdfButton.disabled = !selectedCourses.size;
   pdfButton.innerHTML = '<i class="fa-solid fa-bolt"></i> Find Clash-Free Routines';
   btnOptimize.disabled = false;
-  setWorkspaceView('courses');
   catalogRequest = null;
   catalogTotal = 0;
   optimizedSchedules = [];
@@ -250,13 +249,13 @@ function showCatalog() {
 }
 
 function formatTimeOption(t) {
+  if (!t) return '';
   const [hStr, mStr] = t.split(':');
   const h = parseInt(hStr, 10);
   const m = mStr || '00';
   const ampm = h >= 12 ? 'PM' : 'AM';
   const h12 = h % 12 || 12;
-  const h12Str = String(h12).padStart(2, '0');
-  return `${h12Str}:${m} ${ampm} (${t})`;
+  return `${h12}:${m} ${ampm}`;
 }
 
 function updateTimeFilterPill() {
@@ -265,11 +264,11 @@ function updateTimeFilterPill() {
   const end = document.getElementById('latest-end')?.value;
   if (!pillLabel) return;
   if (start && end) {
-    pillLabel.textContent = `Time: ${start}–${end}`;
+    pillLabel.textContent = `${formatTimeOption(start)} – ${formatTimeOption(end)}`;
   } else if (start) {
-    pillLabel.textContent = `Start: ≥${start}`;
+    pillLabel.textContent = `≥ ${formatTimeOption(start)}`;
   } else if (end) {
-    pillLabel.textContent = `End: ≤${end}`;
+    pillLabel.textContent = `≤ ${formatTimeOption(end)}`;
   } else {
     pillLabel.textContent = 'Time: Any';
   }
@@ -295,7 +294,7 @@ function populateRoutineTimeDropdowns() {
   const currentStart = document.getElementById('earliest-start')?.value || '';
   const currentEnd = document.getElementById('latest-end')?.value || '';
 
-  startSelect.innerHTML = '<option value="">Any start time</option>';
+  startSelect.innerHTML = '<option value="">Any time</option>';
   for (const t of [...rawStarts].sort()) {
     const opt = document.createElement('option');
     opt.value = t;
@@ -304,10 +303,10 @@ function populateRoutineTimeDropdowns() {
   }
   const customStartOpt = document.createElement('option');
   customStartOpt.value = 'custom';
-  customStartOpt.textContent = 'Custom time...';
+  customStartOpt.textContent = 'Custom time…';
   startSelect.appendChild(customStartOpt);
 
-  endSelect.innerHTML = '<option value="">Any finish time</option>';
+  endSelect.innerHTML = '<option value="">Any time</option>';
   for (const t of [...rawEnds].sort()) {
     const opt = document.createElement('option');
     opt.value = t;
@@ -316,29 +315,36 @@ function populateRoutineTimeDropdowns() {
   }
   const customEndOpt = document.createElement('option');
   customEndOpt.value = 'custom';
-  customEndOpt.textContent = 'Custom time...';
+  customEndOpt.textContent = 'Custom time…';
   endSelect.appendChild(customEndOpt);
+
+  const startInput = document.getElementById('earliest-start');
+  const endInput = document.getElementById('latest-end');
 
   if (currentStart) {
     if ([...startSelect.options].some(o => o.value === currentStart)) {
       startSelect.value = currentStart;
+      startInput?.classList.add('hidden');
     } else {
       startSelect.value = 'custom';
-      document.getElementById('earliest-start')?.classList.remove('hidden');
+      startInput?.classList.remove('hidden');
     }
   } else {
     startSelect.value = '';
+    startInput?.classList.add('hidden');
   }
 
   if (currentEnd) {
     if ([...endSelect.options].some(o => o.value === currentEnd)) {
       endSelect.value = currentEnd;
+      endInput?.classList.add('hidden');
     } else {
       endSelect.value = 'custom';
-      document.getElementById('latest-end')?.classList.remove('hidden');
+      endInput?.classList.remove('hidden');
     }
   } else {
     endSelect.value = '';
+    endInput?.classList.add('hidden');
   }
 
   updateTimeFilterPill();
@@ -516,8 +522,11 @@ function renderCatalogList() {
   const query = searchInput.value.trim().toLowerCase();
   
   let candidates = catalog.courses;
+  if (document.getElementById('selected-only')?.getAttribute('aria-pressed') === 'true') {
+    candidates = candidates.filter(c => selectedCourses.has(c.id));
+  }
   if (activeProgramFilter) {
-    candidates = candidates.filter(c => c.program === activeProgramFilter);
+    candidates = candidates.filter(c => c.program === activeProgramFilter || selectedCourses.has(c.id));
   }
 
   let matches = [];
@@ -525,10 +534,27 @@ function renderCatalogList() {
     matches = candidates
       .map(course => ({ course, score: scoreCourse(course, query) }))
       .filter(item => item.score > 0)
-      .sort((a, b) => b.score - a.score)
+      .sort((a, b) => {
+        const aSel = selectedCourses.has(a.course.id) ? 1 : 0;
+        const bSel = selectedCourses.has(b.course.id) ? 1 : 0;
+        if (aSel !== bSel) return bSel - aSel;
+        return b.score - a.score;
+      })
       .map(item => item.course);
   } else {
-    matches = candidates;
+    // Automatically place all selected courses on top for instant access
+    const selected = [];
+    const unselected = [];
+    for (const course of candidates) {
+      if (selectedCourses.has(course.id)) {
+        selected.push(course);
+      } else {
+        unselected.push(course);
+      }
+    }
+    const selectionOrder = [...selectedCourses.keys()];
+    selected.sort((a, b) => selectionOrder.indexOf(a.id) - selectionOrder.indexOf(b.id));
+    matches = [...selected, ...unselected];
   }
 
   document.getElementById('catalog-count').textContent = `${matches.length} courses shown · ${selectedCourses.size} selected`;
@@ -537,10 +563,35 @@ function renderCatalogList() {
     btnClearSearch.classList.toggle('hidden', !query);
   }
 
+  let renderedSelectedHeader = false;
+  let renderedAvailableHeader = false;
+
   for (const course of matches) {
     const isSelected = selectedCourses.has(course.id);
     const acronyms = getCourseAcronyms(course.title);
     const matchedAcronym = query && (acronyms.includes(query) || (COURSE_SYNONYMS[query] && COURSE_SYNONYMS[query].some(s => course.title.toLowerCase().includes(s))));
+
+    if (!query && selectedCourses.size > 0) {
+      if (isSelected && !renderedSelectedHeader) {
+        const header = document.createElement('div');
+        header.className = 'catalog-section-header flex items-center justify-between text-fluid-2xs font-extrabold uppercase tracking-wider text-orange-500 pt-1 pb-0.5 px-1';
+        header.innerHTML = `
+          <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-orange-500 text-xs"></i> Selected Courses (${selectedCourses.size})</span>
+          <span class="text-fluid-2xs text-[var(--text-muted)] font-medium normal-case">Configured on top</span>
+        `;
+        fragment.appendChild(header);
+        renderedSelectedHeader = true;
+      } else if (!isSelected && !renderedAvailableHeader) {
+        const header = document.createElement('div');
+        header.className = 'catalog-section-header flex items-center justify-between text-fluid-2xs font-extrabold uppercase tracking-wider text-[var(--text-muted)] pt-3 pb-0.5 px-1 border-t border-brandBorder/60';
+        header.innerHTML = `
+          <span class="flex items-center gap-1.5"><i class="fa-solid fa-layer-group text-xs"></i> Available Courses</span>
+          <span class="text-fluid-2xs text-[var(--text-muted)] font-medium normal-case">${candidates.length - selectedCourses.size} courses</span>
+        `;
+        fragment.appendChild(header);
+        renderedAvailableHeader = true;
+      }
+    }
 
     const renderKey = JSON.stringify([catalog.id, selectedCourses.get(course.id) ?? null, matchedAcronym ? query : '']);
     const previous = existing.get(course.id);
@@ -594,6 +645,7 @@ function renderCatalogList() {
     card.addEventListener('click', (e) => {
       // Prevent toggling when clicking inside mobile faculty preference pills
       if (e.target.closest('.mobile-faculty-wrapper')) return;
+      const willSelect = !selectedCourses.has(course.id);
       if (selectedCourses.has(course.id)) {
         selectedCourses.delete(course.id);
       } else {
@@ -607,6 +659,12 @@ function renderCatalogList() {
       persistCatalog();
       renderCatalogList();
       renderSelectedCourses();
+      if (willSelect) {
+        const targetCard = list.querySelector(`[data-course-id="${course.id}"]`);
+        if (targetCard) {
+          targetCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
     });
 
     card.appendChild(topRow);
@@ -684,47 +742,6 @@ function renderCatalogList() {
       }
 
       facultyWrapper.appendChild(pillsRow);
-
-      // Per-Course Faculty Priority Option (when 2+ faculty selected)
-      if (preferences.length >= 2) {
-        const priorityControl = document.createElement('div');
-        priorityControl.className = 'faculty-priority-box mt-2 p-2 rounded-xl bg-orange-500/10 border border-orange-500/25 flex items-center justify-between gap-2';
-        priorityControl.innerHTML = `
-          <div class="flex items-center gap-1.5 text-fluid-2xs flex-1 min-w-0">
-            <i class="fa-solid fa-star text-amber-400 flex-shrink-0"></i>
-            <span class="font-bold text-[var(--text-primary)] flex-shrink-0">1st Priority:</span>
-            <select class="faculty-priority-select rounded-lg px-2 py-0.5 text-fluid-2xs font-bold text-orange-400 bg-[var(--bg-secondary)] border border-brandBorder cursor-pointer flex-1 truncate">
-              ${preferences.map((f, i) => `<option value="${escapeHtml(f)}" ${i === 0 ? 'selected' : ''}>${escapeHtml(f)} (#${i + 1}${i === 0 ? ' - 1st Choice' : ''})</option>`).join('')}
-            </select>
-          </div>
-          <button type="button" class="btn-swap-priority text-fluid-2xs font-bold px-2 py-1 rounded-lg bg-[var(--bg-primary)] hover:bg-[var(--bg-card-hover)] border border-brandBorder text-[var(--text-secondary)] hover:text-orange-400 transition-colors flex items-center gap-1 flex-shrink-0" title="Swap priority order">
-            <i class="fa-solid fa-arrow-down-up-across-line text-[10px]"></i> Swap
-          </button>
-        `;
-        const select = priorityControl.querySelector('.faculty-priority-select');
-        select.onclick = (e) => e.stopPropagation();
-        select.onchange = (e) => {
-          e.stopPropagation();
-          const chosen = e.target.value;
-          const reordered = [chosen, ...preferences.filter(f => f !== chosen)];
-          selectedCourses.set(course.id, reordered);
-          invalidateCatalogResults();
-          persistCatalog();
-          renderCatalogList();
-          renderSelectedCourses();
-        };
-        const swapBtn = priorityControl.querySelector('.btn-swap-priority');
-        swapBtn.onclick = (e) => {
-          e.stopPropagation();
-          const reversed = [...preferences].reverse();
-          selectedCourses.set(course.id, reversed);
-          invalidateCatalogResults();
-          persistCatalog();
-          renderCatalogList();
-          renderSelectedCourses();
-        };
-        facultyWrapper.appendChild(priorityControl);
-      }
 
       card.appendChild(facultyWrapper);
     }
@@ -879,43 +896,6 @@ function renderSelectedCourses() {
     }
     facultySection.appendChild(pillsRow);
 
-    // Per-Course Faculty Priority Option (when 2+ faculty selected)
-    if (preferences.length >= 2) {
-      const priorityControl = document.createElement('div');
-      priorityControl.className = 'faculty-priority-box mt-2 p-2 rounded-xl bg-orange-500/10 border border-orange-500/25 flex items-center justify-between gap-2';
-      priorityControl.innerHTML = `
-        <div class="flex items-center gap-1.5 text-fluid-2xs flex-1 min-w-0">
-          <i class="fa-solid fa-star text-amber-400 flex-shrink-0"></i>
-          <span class="font-bold text-[var(--text-primary)] flex-shrink-0">1st Priority:</span>
-          <select class="faculty-priority-select rounded-lg px-2 py-0.5 text-fluid-2xs font-bold text-orange-400 bg-[var(--bg-secondary)] border border-brandBorder cursor-pointer flex-1 truncate">
-            ${preferences.map((f, i) => `<option value="${escapeHtml(f)}" ${i === 0 ? 'selected' : ''}>${escapeHtml(f)} (#${i + 1}${i === 0 ? ' - 1st Choice' : ''})</option>`).join('')}
-          </select>
-        </div>
-        <button type="button" class="btn-swap-priority text-fluid-2xs font-bold px-2 py-1 rounded-lg bg-[var(--bg-primary)] hover:bg-[var(--bg-card-hover)] border border-brandBorder text-[var(--text-secondary)] hover:text-orange-400 transition-colors flex items-center gap-1 flex-shrink-0" title="Swap priority order">
-          <i class="fa-solid fa-arrow-down-up-across-line text-[10px]"></i> Swap
-        </button>
-      `;
-      const select = priorityControl.querySelector('.faculty-priority-select');
-      select.onchange = (e) => {
-        const chosen = e.target.value;
-        const reordered = [chosen, ...preferences.filter(f => f !== chosen)];
-        selectedCourses.set(id, reordered);
-        invalidateCatalogResults();
-        persistCatalog();
-        renderCatalogList();
-        renderSelectedCourses();
-      };
-      const swapBtn = priorityControl.querySelector('.btn-swap-priority');
-      swapBtn.onclick = () => {
-        const reversed = [...preferences].reverse();
-        selectedCourses.set(id, reversed);
-        invalidateCatalogResults();
-        persistCatalog();
-        renderCatalogList();
-        renderSelectedCourses();
-      };
-      facultySection.appendChild(priorityControl);
-    }
     card.appendChild(facultySection);
 
     // Collapsible Section Details
@@ -1101,7 +1081,10 @@ async function fetchCatalogSchedules(offset = 0) {
     window.scheduleOffset = offset;
     selectedScheduleIndex = 0;
     window.selectedScheduleIndex = 0;
-    if (!catalogTotal) throw new Error('No conflict-free routines satisfy these constraints. Try Time first or Faculty first to allow alternatives, widen the time window, or change campus days. ' + (data.notices || []).join(' '));
+    if (!catalogTotal) {
+      const noticeText = (data.notices && data.notices.length) ? ` ${data.notices.join(' ')}` : '';
+      throw new Error(`No conflict-free routines satisfy your current filters.${noticeText} Try widening your time window, choosing different campus days, or relaxing teacher preferences.`);
+    }
     
     emptyState.classList.add('hidden');
     resultsView.classList.remove('hidden');
@@ -1125,7 +1108,7 @@ async function fetchCatalogSchedules(offset = 0) {
   } catch (error) {
     if (version === requestVersion) {
       optimizedSchedules = [];
-      showError(error.message);
+      showError(error.message, 'schedules');
     }
   } finally {
     if (version !== requestVersion) return;
@@ -1139,19 +1122,40 @@ async function fetchCatalogSchedules(offset = 0) {
 
 pdfButton.addEventListener('click', (e) => {
   if (!validateSchedulingPreferences()) return;
-  // Lock scroll position on mobile to prevent jump-to-top when clicking inside <details>
-  if (window.innerWidth < 1024) {
-    const _sy = window.scrollY;
-    const _lock = () => { window.scrollTo({ top: _sy, behavior: 'instant' }); };
-    window.addEventListener('scroll', _lock, { once: true, passive: false });
-    setTimeout(() => window.removeEventListener('scroll', _lock), 400);
-  }
   catalogRequest = {
     catalog_id: catalog.id, campus_days: getCampusDays(), ...getSchedulingPreferences(),
     selections: [...selectedCourses].map(([course_id, faculties]) => ({course_id, faculties: [...faculties]}))
   };
+  setWorkspaceView('schedules');
   fetchCatalogSchedules();
 });
+
+// Conflict/Error card action buttons
+const btnErrorResetFilters = document.getElementById('btn-error-reset-filters');
+if (btnErrorResetFilters) {
+  btnErrorResetFilters.addEventListener('click', () => {
+    if (typeof resetAllFilters === 'function') {
+      resetAllFilters();
+    }
+    if (catalog && selectedCourses.size > 0) {
+      catalogRequest = {
+        catalog_id: catalog.id,
+        campus_days: null,
+        ...getSchedulingPreferences(),
+        selections: [...selectedCourses].map(([course_id, faculties]) => ({course_id, faculties: [...faculties]}))
+      };
+      setWorkspaceView('schedules');
+      fetchCatalogSchedules();
+    }
+  });
+}
+
+const btnErrorToCourses = document.getElementById('btn-error-to-courses');
+if (btnErrorToCourses) {
+  btnErrorToCourses.addEventListener('click', () => {
+    setWorkspaceView('courses');
+  });
+}
 
 document.getElementById('page-prev').onclick = () => fetchCatalogSchedules(window.scheduleOffset - 20);
 document.getElementById('page-next').onclick = () => fetchCatalogSchedules(window.scheduleOffset + 20);
@@ -1210,11 +1214,13 @@ async function loadDefaultRoutine() {
         if (version !== requestVersion) return;
         catalog = data;
         if (saved.id === 'default') catalog.is_default = true;
+        showCatalog();
         restoreSchedulingPreferences(saved);
         document.getElementById('campus-days').value = [2, 3, 4, 5].includes(saved.campus_days) ? String(saved.campus_days) : '';
         refreshPreferenceSummary();
         selectedCourses = new Map((saved.selections || []).filter(s => catalog.courses.some(c => c.id === s.course_id)).map(s => [s.course_id, s.faculties]));
-        showCatalog();
+        renderCatalogList();
+        renderSelectedCourses();
         return;
       }
     }

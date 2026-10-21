@@ -116,6 +116,8 @@ async function downloadCalendarGrid() {
     await document.fonts.ready;
   }
 
+  const previousCalendarView = document.body.dataset.calendarView;
+  document.body.dataset.calendarView = 'grid';
   const originalLabel = btnDownloadSchedule.innerHTML;
   btnDownloadSchedule.disabled = true;
   btnDownloadSchedule.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Exporting...';
@@ -236,6 +238,7 @@ async function downloadCalendarGrid() {
   } catch (err) {
     showError(err.message || 'Failed to download the weekly timetable image.');
   } finally {
+    document.body.dataset.calendarView = previousCalendarView || 'agenda';
     btnDownloadSchedule.innerHTML = originalLabel;
     updateDownloadButtonState();
   }
@@ -381,10 +384,11 @@ function updateCourseCount() {
 
 // Render schedule on the calendar
 function renderCalendarSchedule(schedule) {
+  window.renderMobileSchedule?.(schedule);
   window.renderPreferenceReport?.(selectedScheduleIndex);
   const slots = schedule.flatMap(item => item.section.slots);
-  START_MINS = Math.floor(Math.min(510, ...slots.map(s => s.start_mins)) / 60) * 60;
-  END_MINS = Math.ceil(Math.max(1230, ...slots.map(s => s.end_mins)) / 60) * 60;
+  START_MINS = Math.floor(Math.min(...(slots.length ? slots.map(s => s.start_mins) : [510])) / 60) * 60;
+  END_MINS = Math.ceil(Math.max(...(slots.length ? slots.map(s => s.end_mins) : [1230])) / 60) * 60;
   TOTAL_MINS = END_MINS - START_MINS;
   initCalendarHours();
 
@@ -501,8 +505,8 @@ function renderOptionSelectors() {
 window.renderOptionSelectors = renderOptionSelectors;
 
 // Show errors
-function showError(msg) {
-  setWorkspaceView('courses');
+function showError(msg, targetWorkspace = 'schedules') {
+  setWorkspaceView(targetWorkspace);
   errorMessage.textContent = msg;
   errorState.classList.remove('hidden');
   resultsView.classList.add('hidden');
@@ -522,7 +526,7 @@ async function optimizeRoutine() {
   errorState.classList.add('hidden');
   
   if (courses.length === 0) {
-    showError("Please add at least one course before running the optimization.");
+    showError("Please add at least one course before running the optimization.", 'courses');
     return;
   }
 
@@ -532,11 +536,11 @@ async function optimizeRoutine() {
     const text = c.text.trim();
     
     if (!name) {
-      showError("Course Name cannot be empty. Please fill in the Course Name for all cards.");
+      showError("Course Name cannot be empty. Please fill in the Course Name for all cards.", 'courses');
       return;
     }
     if (!text) {
-      showError(`Routine text details for course '${name}' are empty.`);
+      showError(`Routine text details for course '${name}' are empty.`, 'courses');
       return;
     }
 
@@ -570,7 +574,7 @@ async function optimizeRoutine() {
     selectedScheduleIndex = 0;
 
     if (optimizedSchedules.length === 0) {
-      showError("No valid conflict-free combinations could be found for the defined courses. Try widening the time window or choosing Time first to allow alternatives.");
+      showError("No valid conflict-free combinations could be found for the defined courses. Try widening the time window or relaxing filters.", 'schedules');
       return;
     }
 
@@ -665,7 +669,12 @@ function updateWorkspaceBadges() {
 window.updateWorkspaceBadges = updateWorkspaceBadges;
 
 function setWorkspaceView(view) {
+  const changed = document.body.dataset.workspace !== view;
   document.body.dataset.workspace = view;
+  if (changed && window.matchMedia('(max-width: 900px)').matches) {
+    window.scrollTo({top: 0, behavior: 'instant'});
+    document.body.scrollTop = 0;
+  }
   document.querySelectorAll('[data-workspace]').forEach(button => {
     if (button.tagName === 'BUTTON') {
       const isSelected = button.dataset.workspace === view;
@@ -680,18 +689,5 @@ document.querySelectorAll('button[data-workspace]').forEach(button => {
 setWorkspaceView('courses');
 
 function getCampusDays() {
-  return Number(document.getElementById('campus-days').value) || null;
-}
-document.getElementById('campus-days').addEventListener('change', () => {
-  refreshPreferenceSummary();
-  invalidateCatalogResults();
-  if (catalog) persistCatalog();
-});
-// Keep errors with the selection controls while the timetable is hidden.
-const weekPref = document.getElementById('week-preferences');
-const inputWorkspace = document.getElementById('input-workspace');
-if (errorState && weekPref && weekPref.parentNode === inputWorkspace) {
-  inputWorkspace.insertBefore(errorState, weekPref);
-} else if (errorState && inputWorkspace) {
-  inputWorkspace.prepend(errorState);
+  return Number(document.getElementById('campus-days')?.value) || null;
 }

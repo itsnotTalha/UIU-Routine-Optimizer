@@ -239,3 +239,25 @@ def test_faculty_preference_priority_ordering(api):
     assert res1['total'] == 2
     assert res1['schedules'][0][0]['section']['faculty'] == 'Teacher One'
     assert res1['schedules'][1][0]['section']['faculty'] == 'Teacher Two'
+
+
+def test_course_priority_resolves_conflicting_first_choice_teachers(api):
+    data = upload(api)
+    lab = {'course_id': 'BSCSE:CSE 1112', 'faculties': ['Teacher One', 'Teacher Two']}
+    accounting = {'course_id': 'BSCSE:ACT 2111', 'faculties': ['Teacher One', 'Unassigned']}
+    # Their first-choice sections clash. Changing course order must change the
+    # winner even with an already-warm result cache and solver search reordering.
+    for selections, expected in [
+        ([lab, accounting], {'CSE 1112': 'Teacher One', 'ACT 2111': 'Unassigned'}),
+        ([accounting, lab], {'CSE 1112': 'Teacher Two', 'ACT 2111': 'Teacher One'}),
+        ([lab, accounting], {'CSE 1112': 'Teacher One', 'ACT 2111': 'Unassigned'}),
+    ]:
+        response = api.post('/api/catalogs/optimize', json={
+            'catalog_id': data['id'], 'selections': selections})
+        assert response.status_code == 200, response.text
+        result = response.json()
+        assert result['total'] == 3
+        first = result['schedules'][0]
+        assert len(first) == 2
+        for code, teacher in expected.items():
+            assert next(c['section']['faculty'] for c in first if c['course_name'].startswith(code)) == teacher

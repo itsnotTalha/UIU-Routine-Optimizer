@@ -23,6 +23,8 @@ class SchedulePreferences(BaseModel):
     earliest_start: Optional[str] = Field(default=None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     latest_end: Optional[str] = Field(default=None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     priority: Literal['strict', 'time_first', 'faculty_first'] = 'strict'
+    min_gap: Optional[int] = Field(default=None, ge=0, le=240)
+    prioritized_faculties: Optional[List[str]] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def valid_window(self):

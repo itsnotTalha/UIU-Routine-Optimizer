@@ -156,6 +156,12 @@ body {
   transition: all 0.2s ease;
 }
 
+select.glass-input option {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  padding: 8px 12px;
+}
+
 .glass-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-glow);
@@ -1218,5 +1224,39 @@ button:active:not(:disabled),
 @media (min-width: 1024px) {
   .mobile-optimize-bar {
     display: none !important;
+  }
+}
+
+/* ── Advanced Routine Filters Drawer & Multi-select ──────────────────────── */
+#filters-drawer-backdrop {
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+#filters-drawer {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: -12px 0 36px rgba(0, 0, 0, 0.55);
+}
+.faculty-check-card {
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+}
+.faculty-check-card:hover {
+  transform: translateY(-1px);
+}
+.faculty-check-card:active {
+  transform: translateY(0);
+}
+.custom-checkbox {
+  transition: all 0.15s ease;
+}
+#global-faculty-checklist::-webkit-scrollbar {
+  width: 5px;
+}
+#global-faculty-checklist::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+@media (max-width: 640px) {
+  #filters-drawer {
+    max-width: 100vw;
   }
 }
