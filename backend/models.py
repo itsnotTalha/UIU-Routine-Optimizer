@@ -34,6 +34,7 @@ class FixedSlot(BaseModel):
 
 
 class SchedulePreferences(BaseModel):
+    allowed_days: List[Literal['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']] = Field(default_factory=list, max_length=7)
     fixed_slots: List[FixedSlot] = Field(default_factory=list, max_length=30)
     earliest_start: Optional[str] = Field(default=None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     latest_end: Optional[str] = Field(default=None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
@@ -65,6 +66,7 @@ class OptimizeResponse(BaseModel):
     schedules: List[List[CourseSectionMapping]]
     error: Optional[str] = None
     daily_class_limit: Optional[dict] = None
+    preference_advice: Optional[dict] = None
     preference_reports: List[dict] = Field(default_factory=list)
 
 class SavedCourse(BaseModel):

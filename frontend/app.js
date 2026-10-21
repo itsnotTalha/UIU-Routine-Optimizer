@@ -505,8 +505,9 @@ function renderOptionSelectors() {
 window.renderOptionSelectors = renderOptionSelectors;
 
 // Show errors
-function showError(msg, targetWorkspace = 'schedules', dailyLimit = null, source = 'manual') {
-  window.renderDailyLimitSuggestion?.(dailyLimit, source);
+function showError(msg, targetWorkspace = 'schedules', dailyLimit = null, source = 'manual', preferenceAdvice = null) {
+  window.renderDailyLimitSuggestion?.(dailyLimit, source, preferenceAdvice);
+  window.renderCourseConflicts?.(preferenceAdvice?.conflicts || []);
   setWorkspaceView(targetWorkspace);
   errorMessage.textContent = msg;
   errorState.classList.remove('hidden');
@@ -575,7 +576,7 @@ async function optimizeRoutine() {
     selectedScheduleIndex = 0;
 
     if (optimizedSchedules.length === 0) {
-      showError(data.daily_class_limit?.message || "No valid conflict-free combinations could be found for the defined courses. Try widening the time window or relaxing filters.", 'schedules', data.daily_class_limit, 'manual');
+      showError((data.daily_class_limit?.suggested ? data.daily_class_limit.message : data.preference_advice?.message || data.daily_class_limit?.message) || "No valid conflict-free combinations could be found for the defined courses. Try widening the time window or relaxing filters.", 'schedules', data.daily_class_limit, 'manual', data.preference_advice);
       return;
     }
 

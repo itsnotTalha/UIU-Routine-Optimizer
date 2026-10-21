@@ -1117,9 +1117,12 @@ async function fetchCatalogSchedules(offset = 0) {
     selectedScheduleIndex = 0;
     window.selectedScheduleIndex = 0;
     if (!catalogTotal) {
-      if (data.daily_class_limit?.message) {
-        const error = new Error(data.daily_class_limit.message);
+      if (data.preference_advice?.message || data.daily_class_limit?.message) {
+        const error = new Error(data.daily_class_limit?.suggested
+          ? data.daily_class_limit.message
+          : data.preference_advice?.message || data.daily_class_limit.message);
         error.dailyLimit = data.daily_class_limit;
+        error.preferenceAdvice = data.preference_advice;
         throw error;
       }
       const noticeText = (data.notices && data.notices.length) ? ` ${data.notices.join(' ')}` : '';
@@ -1148,7 +1151,7 @@ async function fetchCatalogSchedules(offset = 0) {
   } catch (error) {
     if (version === requestVersion) {
       optimizedSchedules = [];
-      showError(error.message, 'schedules', error.dailyLimit, 'catalog');
+      showError(error.message, 'schedules', error.dailyLimit, 'catalog', error.preferenceAdvice);
     }
   } finally {
     if (version !== requestVersion) return;

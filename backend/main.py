@@ -10,7 +10,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from backend.models import OptimizeRequest, OptimizeResponse, SavedCourse
 from backend.parser import parse_section_text
 from backend.optimizer import solve_schedules
-from backend.preferences import filter_strict, preference_score, preference_report, gap_violations, daily_class_limit_advice
+from backend.preferences import filter_strict, preference_score, preference_report, gap_violations, daily_class_limit_advice, preference_failure_advice
 from backend.catalog import router as catalog_router
 
 app = FastAPI(title="Routine Schedule Optimizer")
@@ -52,6 +52,7 @@ def optimize_schedules(request: OptimizeRequest):
             
     try:
         preferences = dict(
+            allowed_days=request.allowed_days,
             fixed_slots=[slot.model_dump() for slot in request.fixed_slots],
             earliest_start=request.earliest_start,
             latest_end=request.latest_end,
@@ -61,11 +62,11 @@ def optimize_schedules(request: OptimizeRequest):
             prioritized_faculties=request.prioritized_faculties or []
         )
         candidates = filter_strict(parsed_courses, preferences) if request.priority == 'strict' else parsed_courses
-        schedules = solve_schedules(candidates, campus_days=request.campus_days, max_results=100_000, max_nodes=2_000_000, max_classes_per_day=request.max_classes_per_day, fixed_slots=preferences['fixed_slots'])
+        schedules = solve_schedules(candidates, campus_days=request.campus_days, max_results=100_000, max_nodes=2_000_000, max_classes_per_day=request.max_classes_per_day, fixed_slots=preferences['fixed_slots'], allowed_days=request.allowed_days)
         if request.priority == 'strict' and request.min_gap:
             schedules = [s for s in schedules if gap_violations(s, request.min_gap)[0] == 0]
         schedules.sort(key=lambda s: preference_score(s, preferences))
-        return OptimizeResponse(daily_class_limit=daily_class_limit_advice(parsed_courses, request.campus_days, preferences) if not schedules else None, schedules=schedules, preference_reports=[preference_report(s, preferences) for s in schedules])
+        return OptimizeResponse(preference_advice=preference_failure_advice(parsed_courses, request.campus_days, preferences) if not schedules else None, daily_class_limit=daily_class_limit_advice(parsed_courses, request.campus_days, preferences) if not schedules else None, schedules=schedules, preference_reports=[preference_report(s, preferences) for s in schedules])
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:

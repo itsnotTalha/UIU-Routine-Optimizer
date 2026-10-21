@@ -33,7 +33,7 @@ def fixed_courses(fixed_slots):
         for slot in (fixed_slots or [])]
 
 
-def solve_schedules(courses: List[Dict[str, Any]], max_results=None, max_nodes=None, campus_days=None, max_classes_per_day=None, accept_schedule=None, first_only=False, fixed_slots=None) -> List[List[Dict[str, Any]]]:
+def solve_schedules(courses: List[Dict[str, Any]], max_results=None, max_nodes=None, campus_days=None, max_classes_per_day=None, accept_schedule=None, first_only=False, fixed_slots=None, allowed_days=None) -> List[List[Dict[str, Any]]]:
     """
     Finds all combinations of sections (one per course) that are conflict-free.
     
@@ -65,6 +65,10 @@ def solve_schedules(courses: List[Dict[str, Any]], max_results=None, max_nodes=N
     ]
     """
     courses = fixed_courses(fixed_slots) + courses
+    if allowed_days:
+        allowed = set(allowed_days)
+        courses = [dict(course, sections=[section for section in course['sections']
+                   if all(slot['day'] in allowed for slot in section['slots'])]) for course in courses]
     if not courses:
         return []
 

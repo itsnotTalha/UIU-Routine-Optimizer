@@ -32,7 +32,7 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <!-- Custom Stylesheet -->
   <link rel="stylesheet" href="styles.css?v=29553dc15417">
-  <link rel="stylesheet" href="planner.css?v=ab0d8537507a">
+  <link rel="stylesheet" href="planner.css?v=098a7652760a">
   <script>
     tailwind.config = {
       theme: {
@@ -348,6 +348,7 @@ Wednesday 09:50-11:10</pre>
           <h3 class="text-fluid-base font-extrabold text-[var(--text-primary)]">No Matching Routines Found</h3>
           <p id="error-message" class="text-fluid-xs text-[var(--text-secondary)] leading-relaxed"></p>
         </div>
+        <div id="course-conflicts" hidden aria-label="Course conflicts"></div>
         <div id="daily-limit-suggestion" hidden>
           <span class="suggestion-label">A small change can make this work</span>
           <p id="daily-limit-suggestion-detail"></p>
@@ -658,6 +659,24 @@ Wednesday 09:50-11:10</pre>
               <input id="max-classes-per-day" type="number" min="1" step="1" inputmode="numeric" placeholder="No limit" aria-describedby="max-classes-help" class="glass-input rounded-xl px-3 py-2.5 w-full">
               <p id="max-classes-help">Includes labs and fixed slots. Blank means no limit.</p></div>
           </div>
+          <fieldset class="allowed-days-field">
+            <legend>Allowed class days</legend>
+            <p class="preference-description" id="allowed-days-help">Leave all unchecked for any day. Classes and fixed slots must fit these days. Days on campus still sets the exact number of days used.</p>
+            <div id="allowed-days" class="allowed-days-options" aria-describedby="allowed-days-help">
+              <label><input type="checkbox" value="Saturday" aria-label="Saturday"><span>Sat</span></label>
+              <label><input type="checkbox" value="Sunday" aria-label="Sunday"><span>Sun</span></label>
+              <label><input type="checkbox" value="Monday" aria-label="Monday"><span>Mon</span></label>
+              <label><input type="checkbox" value="Tuesday" aria-label="Tuesday"><span>Tue</span></label>
+              <label><input type="checkbox" value="Wednesday" aria-label="Wednesday"><span>Wed</span></label>
+              <label><input type="checkbox" value="Thursday" aria-label="Thursday"><span>Thu</span></label>
+              <label><input type="checkbox" value="Friday" aria-label="Friday"><span>Fri</span></label>
+            </div>
+            <div class="allowed-days-shortcuts">
+              <button type="button" data-allowed-days="Saturday,Tuesday">Sat + Tue</button>
+              <button type="button" data-allowed-days="Sunday,Wednesday">Sun + Wed</button>
+              <button type="button" data-allowed-days="">Any day</button>
+            </div>
+          </fieldset>
         </fieldset>
         <fieldset class="preference-group">
           <legend><span class="preference-step">2</span> Class times</legend>
@@ -724,15 +743,15 @@ Wednesday 09:50-11:10</pre>
   </div>
 
   <!-- Application Scripts -->
-  <dialog id="shortlist-dialog" aria-labelledby="shortlist-title"><header><div><p class="planner-eyebrow">KEEP YOUR OPTIONS OPEN</p><h2 id="shortlist-title">Your shortlist</h2></div><button id="close-shortlist" type="button" aria-label="Close shortlist">✕</button></header><p>Save up to three routines to compare days, breaks and teachers. Stored on this browser.</p><div id="shortlist-content"></div></dialog>
-  <script src="app.js?v=cdf022b1a59d"></script>
+  <dialog id="shortlist-dialog" aria-labelledby="shortlist-title"><header><div><p class="planner-eyebrow">KEEP YOUR OPTIONS OPEN</p><h2 id="shortlist-title">Your shortlist</h2></div><button id="close-shortlist" type="button" aria-label="Close shortlist">✕</button></header><p>Save up to three routines to compare days, breaks and teachers. Stored on this browser.</p><div id="routine-comparison"></div><div id="shortlist-content"></div></dialog>
+  <script src="app.js?v=9914b7948d94"></script>
   <script src="priority-sorter.js?v=aeb58fa450e5"></script>
-  <script src="preferences.js?v=4a7ef08315a4"></script>
-  <script src="catalog.js?v=0417793ba933"></script>
+  <script src="preferences.js?v=366061a5a544"></script>
+  <script src="catalog.js?v=0e402189d3e0"></script>
   <script src="mobile.js?v=308bcfe647d2"></script>
-  <script src="mobile-search.js?v=610cb89a7508"></script>
+  <script src="mobile-search.js?v=067410366aff"></script>
   <script src="mobile-schedule.js?v=ccdfa2ab2453"></script>
-  <script src="planner.js?v=de7e0885f7ec"></script>
+  <script src="planner.js?v=c6781be48d01"></script>
   <script src="dropdowns.js?v=7e4bcb94f721"></script>
   <script src="routine-picker.js?v=f3ea31301d16"></script>
 </body>

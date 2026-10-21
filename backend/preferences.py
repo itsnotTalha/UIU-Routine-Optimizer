@@ -63,7 +63,7 @@ def gap_violations(schedule, min_gap):
             gap = b[0] - a[1]
             if gap < min_gap:
                 violations += 1
-                warnings.append(f"{day}: only {gap}m gap between {a[2].split(' — ')[0]} (Sec {a[3]}) ending {a[5]} and {b[2].split(' — ')[0]} (Sec {b[3]}) starting {b[4]} (preferred ≥{min_gap}m).")
+                warnings.append(f"{day}: only {gap}m gap between {a[2].split(' — ')[0]} (Sec {a[3]}) ending {a[5]} and {b[2].split(' — ')[0]} (Sec {b[3]}) starting {b[4]} (preferred ≥{min_gap}m). Suggested fix: reduce the minimum break to {gap} minutes or choose sections farther apart.")
     return violations, warnings
 
 
@@ -96,10 +96,10 @@ def preference_report(schedule, preferences):
         section = item['section']
         wanted = preferences.get('faculties', {}).get(item['course_name'], []) if preferences else []
         if wanted and section['faculty'] not in wanted:
-            warnings.append(f"{item['course_name']}: section {section['name']} uses {section['faculty']}; preferred: {', '.join(wanted)}.")
+            warnings.append(f"{item['course_name']}: section {section['name']} uses {section['faculty']}; preferred: {', '.join(wanted)}. Suggested fix: include {section['faculty']} in this course’s teacher choices, or choose another routine with a preferred teacher.")
         for slot in section['slots']:
             if outside_minutes(slot, earliest, latest):
-                warnings.append(f"{item['course_name']}, section {section['name']}: {slot['day']} {slot['start_time']}–{slot['end_time']} is outside your preferred window ({preferences.get('earliest_start') or '00:00'}–{preferences.get('latest_end') or '24:00'}).")
+                warnings.append(f"{item['course_name']}, section {section['name']}: {slot['day']} {slot['start_time']}–{slot['end_time']} is outside your preferred window ({preferences.get('earliest_start') or '00:00'}–{preferences.get('latest_end') or '24:00'}). Suggested fix: widen your time window to include {slot['start_time']}–{slot['end_time']}, or choose a section inside your window.")
     if preferences and preferences.get('min_gap'):
         _, gap_warns = gap_violations(schedule, preferences['min_gap'])
         warnings.extend(gap_warns)
@@ -117,7 +117,7 @@ def availability_notices(courses, preferences):
         for faculty in preferences.get('faculties', {}).get(course['course_name'], []):
             options = [s for s in course['sections'] if s['faculty'] == faculty]
             if options and not any(all(outside_minutes(slot, earliest, latest) == 0 for slot in s['slots']) for s in options):
-                notices.append(f"{course['course_name']}: {faculty} has no section with every meeting inside your preferred time window.")
+                notices.append(f"{course['course_name']}: {faculty} has no section with every meeting inside your preferred time window. Suggested fix: widen the time window or choose another teacher for this course.")
     return notices
 
 
@@ -135,7 +135,7 @@ def daily_class_limit_advice(courses, campus_days, preferences):
     def feasible(limit):
         return bool(solve_schedules(
             candidates, campus_days=campus_days, max_classes_per_day=limit,
-            fixed_slots=preferences.get('fixed_slots'),
+            fixed_slots=preferences.get('fixed_slots'), allowed_days=preferences.get('allowed_days'),
             max_nodes=2_000_000, first_only=True,
             accept_schedule=(lambda s: gap_violations(s, min_gap)[0] == 0) if min_gap else None))
 
@@ -158,4 +158,95 @@ def daily_class_limit_advice(courses, campus_days, preferences):
         advice['message'] = f'No routine can fit at most {requested} {noun} per day with your other filters. Try {lower} classes per day — this is the closest workable limit. Update it in Preferences and apply again.'
     except ValueError:
         advice['message'] = f'No routine fits your daily limit of {requested}. The search is too large to verify a nearby limit; narrow your course or teacher choices and try again.'
+    return advice
+
+
+def _preference_failure_advice(courses, campus_days, preferences):
+    """Explain a failed search using a verified relaxation, preserving other filters.
+
+    Only call after a search returns no schedules. A bounded diagnostic search
+    must never turn an unverified change into a promised solution.
+    """
+    from backend.optimizer import solve_schedules
+
+    def find_schedule(prefs, days):
+        strict = prefs.get('priority') == 'strict'
+        candidates = filter_strict(courses, prefs) if strict else courses
+        gap = prefs.get('min_gap') if strict else None
+        return solve_schedules(
+            candidates, campus_days=days,
+            max_classes_per_day=prefs.get('max_classes_per_day'),
+            fixed_slots=prefs.get('fixed_slots'), allowed_days=prefs.get('allowed_days'), max_nodes=200_000,
+            first_only=True,
+            accept_schedule=(lambda s: gap_violations(s, gap)[0] == 0) if gap else None)
+
+    # Obtain a concrete routine before proposing extra allowed days.
+    incomplete = False
+    allowed = preferences.get('allowed_days') or []
+    if allowed:
+        try:
+            alternatives = find_schedule({**preferences, 'allowed_days': []}, campus_days)
+            if alternatives:
+                used = {slot['day'] for item in alternatives[0] for slot in item['section']['slots']}
+                extra = used - set(allowed)
+                order = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+                suggested = [day for day in order if day in used or day in allowed]
+                fixed_outside = {slot['day'] for slot in preferences.get('fixed_slots', [])} - set(allowed)
+                cause = ('Your fixed slots include days outside your allowed class days.' if fixed_outside else
+                         'No routine fits your allowed class days with the other filters.')
+                suggestion = f"Also allow {', '.join(day for day in order if day in extra)} and find routines again."
+                return dict(message=f'{cause} Suggested fix: {suggestion}', cause=cause,
+                            suggestion=suggestion, changes={'allowed_days': suggested})
+        except ValueError:
+            incomplete = True
+
+    changes = []
+    if preferences.get('priority') == 'strict':
+        if preferences.get('earliest_start'):
+            changes.append(({'earliest_start': None}, campus_days,
+                f"Your earliest start of {preferences['earliest_start']} rules out the available routines.",
+                'Set Earliest start to Any time in Preferences and apply again.'))
+        if preferences.get('latest_end'):
+            changes.append(({'latest_end': None}, campus_days,
+                f"Your latest finish of {preferences['latest_end']} rules out the available routines.",
+                'Set Latest finish to Any time in Preferences and apply again.'))
+        if preferences.get('min_gap'):
+            changes.append(({'min_gap': None}, campus_days,
+                f"The available routines cannot provide your {preferences['min_gap']}-minute minimum break.",
+                'Set the Minimum break to No minimum and apply again.'))
+        if any(preferences.get('faculties', {}).values()):
+            changes.append(({'faculties': {}}, campus_days,
+                'Your selected teachers cannot form a routine with the other filters.',
+                'Allow any teacher for your selected courses and apply again.'))
+    if campus_days is not None:
+        changes.append(({}, None,
+            f'No routine fits exactly {campus_days} campus days with your other filters.',
+            'Set Days on campus to Any days and apply again.'))
+    if preferences.get('fixed_slots'):
+        changes.append(({'fixed_slots': []}, campus_days,
+            'Your fixed slots prevent a routine with the other filters.',
+            'Review the times of your fixed slots. Removing them allows a routine, but only remove commitments you no longer need.'))
+    if preferences.get('priority') == 'strict':
+        changes.append(({'earliest_start': None, 'latest_end': None, 'min_gap': None, 'faculties': {}}, campus_days,
+            'Your time, break, and teacher preferences cannot all be met together.',
+            'Set both time limits to Any time, Minimum break to No minimum, and allow any teacher, then apply again.'))
+    for patch, days, cause, suggestion in changes:
+        try:
+            if find_schedule({**preferences, **patch}, days):
+                return dict(message=f'{cause} Suggested fix: {suggestion}',
+                            cause=cause, suggestion=suggestion,
+                            changes={**patch, **({'campus_days': days} if days != campus_days else {})})
+        except ValueError:
+            incomplete = True
+    if incomplete:
+        message = 'No matching routine was found. The diagnostic search reached its limit, so a fix could not be verified. Try fewer course or section choices, then apply again.'
+    else:
+        message = 'No matching routine was found, and no tested preference change alone produced one. Review overlapping course meetings and fixed slots, or relax multiple filters together and apply again.'
+    return dict(message=message)
+
+
+def preference_failure_advice(courses, campus_days, preferences):
+    from backend.conflicts import course_conflicts
+    advice = _preference_failure_advice(courses, campus_days, preferences)
+    advice['conflicts'] = course_conflicts(courses, preferences)
     return advice

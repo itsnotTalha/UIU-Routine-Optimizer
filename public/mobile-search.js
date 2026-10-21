@@ -47,7 +47,11 @@
     list.focus({ preventScroll: true });
     closing = false;
   });
-  dialog.querySelector('button').addEventListener('click', () => dialog.close());
+  dialog.querySelector('button').addEventListener('click', () => {
+    input.value = '';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    dialog.close();
+  });
   input.addEventListener('focus', open);
   input.addEventListener('click', open);
   input.addEventListener('input', () => { list.scrollTop = 0; });
