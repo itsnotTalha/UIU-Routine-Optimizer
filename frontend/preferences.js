@@ -438,18 +438,50 @@ function dailyLimitContext() {
   });
 }
 
-window.renderDailyLimitSuggestion = function(advice, source) {
+// Apply only the fields named by a verified suggestion.
+function applySuggestedChanges(changes) {
+  for (const [key, input, select] of [
+    ['earliest_start', earliestInput, earliestSelect],
+    ['latest_end', latestInput, latestSelect]
+  ]) {
+    if (Object.hasOwn(changes, key)) {
+      input.value = changes[key] || '';
+      select.value = input.value;
+      input.classList.add('hidden');
+    }
+  }
+  for (const [key, id] of [['min_gap', 'min-gap-select'], ['campus_days', 'campus-days'], ['max_classes_per_day', 'max-classes-per-day']]) {
+    if (Object.hasOwn(changes, key)) document.getElementById(id).value = changes[key] ?? '';
+  }
+  if (Object.hasOwn(changes, 'fixed_slots')) {
+    document.getElementById('fixed-slots-list').replaceChildren();
+    document.getElementById('add-fixed-slot').disabled = false;
+    for (const slot of changes.fixed_slots) addFixedSlot(slot);
+  }
+  if (Object.hasOwn(changes, 'faculties')) {
+    for (const id of selectedCourses.keys()) selectedCourses.set(id, []);
+    renderCatalogList();
+    renderSelectedCourses();
+    renderGlobalFacultyChecklist();
+  }
+}
+
+window.renderDailyLimitSuggestion = function(advice, source, preferenceAdvice = null) {
   const panel = document.getElementById('daily-limit-suggestion');
   const button = document.getElementById('btn-apply-daily-limit');
   panel.hidden = true;
   button.onclick = null;
   button.disabled = false;
-  if (!Number.isInteger(advice?.suggested) || advice.suggested <= advice.requested ||
-      getSchedulingPreferences().max_classes_per_day !== advice.requested) return;
+  const daily = Number.isInteger(advice?.suggested) && advice.suggested > advice.requested &&
+    getSchedulingPreferences().max_classes_per_day === advice.requested;
+  const changes = daily ? {max_classes_per_day: advice.suggested} : preferenceAdvice?.changes;
+  if (!changes || !Object.keys(changes).length) return;
   const context = dailyLimitContext();
-  document.getElementById('daily-limit-suggestion-detail').textContent =
-    `Daily limit: ${advice.requested} → ${advice.suggested} classes`;
-  button.textContent = `Apply ${advice.suggested} classes/day & find routines`;
+  document.getElementById('daily-limit-suggestion-detail').textContent = daily
+    ? `Daily limit: ${advice.requested} → ${advice.suggested} classes`
+    : preferenceAdvice.suggestion;
+  panel.querySelector('.suggestion-note').textContent = 'Applies the changes shown above, keeps your other preferences, and finds routines again.';
+  button.textContent = daily ? `Apply ${advice.suggested} classes/day & find routines` : 'Apply changes & find routines';
   panel.hidden = false;
   button.onclick = async () => {
     if (context !== dailyLimitContext()) {
@@ -458,8 +490,8 @@ window.renderDailyLimitSuggestion = function(advice, source) {
     }
     button.disabled = true;
     button.textContent = 'Applying & finding routines…';
-    document.getElementById('max-classes-per-day').value = String(advice.suggested);
     try {
+      applySuggestedChanges(changes);
       await applySchedulingPreferences(source);
     } finally {
       // A fresh failed search may have supplied a new suggestion.

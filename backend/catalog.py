@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException, UploadFile
 from backend.models import CatalogOptimizeRequest
 from backend.optimizer import solve_schedules, schedule_score
 from backend.pdf_import import import_pdf
-from backend.preferences import preference_score, preference_report, filter_strict, availability_notices, penalties, gap_violations, daily_class_limit_advice
+from backend.preferences import preference_score, preference_report, filter_strict, availability_notices, penalties, gap_violations, daily_class_limit_advice, preference_failure_advice
 
 router = APIRouter()
 CATALOG_DIR = Path(__file__).parent / 'catalogs'
@@ -208,7 +208,7 @@ def optimize_catalog(request: CatalogOptimizeRequest):
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     page = schedules[request.offset:request.offset + request.limit]
-    return dict(daily_class_limit=daily_class_limit_advice(courses, request.campus_days, preferences) if not schedules else None,
+    return dict(preference_advice=preference_failure_advice(courses, request.campus_days, preferences) if not schedules else None, daily_class_limit=daily_class_limit_advice(courses, request.campus_days, preferences) if not schedules else None,
                 schedules=page, total=len(schedules), offset=request.offset,
                 preference_reports=[preference_report(s, preferences) for s in page],
                 notices=availability_notices(courses, preferences),

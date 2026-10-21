@@ -65,6 +65,7 @@ class OptimizeResponse(BaseModel):
     schedules: List[List[CourseSectionMapping]]
     error: Optional[str] = None
     daily_class_limit: Optional[dict] = None
+    preference_advice: Optional[dict] = None
     preference_reports: List[dict] = Field(default_factory=list)
 
 class SavedCourse(BaseModel):
