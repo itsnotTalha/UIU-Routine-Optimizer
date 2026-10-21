@@ -18,9 +18,61 @@ function getGlobalPrioritizedFaculties() {
 }
 window.getGlobalPrioritizedFaculties = getGlobalPrioritizedFaculties;
 
+function readFixedSlots() {
+  return [...document.querySelectorAll('.fixed-slot-row')].map(row => {
+    const value = field => row.querySelector(`[data-field="${field}"]`).value;
+    const minutes = text => text ? Number(text.split(':')[0]) * 60 + Number(text.split(':')[1]) : null;
+    return {title: value('title').trim() || 'FYDP / Blocked', day: value('day'),
+      start_time: minutes(value('start_time')), end_time: minutes(value('end_time'))};
+  });
+}
+
+function addFixedSlot(slot = {day: 'Saturday', start_time: 510, end_time: 660}) {
+  const list = document.getElementById('fixed-slots-list');
+  if (list.children.length >= 30) return;
+  const row = document.createElement('div');
+  row.className = 'fixed-slot-row';
+  for (const [field, labelText, type] of [['title', 'Label (optional)', 'text'], ['day', 'Day', 'select'], ['start_time', 'Start time', 'time'], ['end_time', 'End time', 'time']]) {
+    const label = document.createElement('label');
+    label.textContent = labelText;
+    const input = document.createElement(type === 'select' ? 'select' : 'input');
+    input.dataset.field = field;
+    input.className = 'glass-input rounded-xl px-3 py-2 w-full';
+    if (type === 'select') {
+      for (const day of ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']) input.add(new Option(day, day));
+    } else input.type = type;
+    if (type === 'time') {
+      input.step = '60';
+      input.required = true;
+      const mins = slot[field];
+      input.value = Number.isInteger(mins) ? `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}` : '';
+    } else input.value = slot[field] || '';
+    if (field === 'title') { input.maxLength = 120; input.placeholder = 'CSE 4000A (FYDP-I)'; }
+    label.append(input);
+    row.append(label);
+  }
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.textContent = 'Remove fixed slot';
+  remove.onclick = () => { row.remove(); document.getElementById('add-fixed-slot').disabled = false; preferencesChanged(); };
+  row.append(remove);
+  row.addEventListener('input', () => {
+    row.querySelector('[data-field="end_time"]').setCustomValidity('');
+    preferencesChanged();
+  });
+  list.append(row);
+  document.getElementById('add-fixed-slot').disabled = list.children.length >= 30;
+}
+document.getElementById('add-fixed-slot').addEventListener('click', () => {
+  addFixedSlot();
+  document.querySelector('.fixed-slot-row:last-child input')?.focus();
+  preferencesChanged();
+});
+
 function getSchedulingPreferences() {
   const minGapVal = document.getElementById('min-gap-select')?.value;
   return {
+    fixed_slots: readFixedSlots(),
     earliest_start: earliestInput?.value || null,
     latest_end: latestInput?.value || null,
     priority: 'strict',
@@ -31,6 +83,17 @@ function getSchedulingPreferences() {
 }
 
 function validateSchedulingPreferences() {
+  const rows = [...document.querySelectorAll('.fixed-slot-row')];
+  const slots = readFixedSlots();
+  for (let i = 0; i < rows.length; i++) {
+    const end = rows[i].querySelector('[data-field="end_time"]');
+    const slot = slots[i];
+    const overlaps = slots.slice(0, i).some(other => other.day === slot.day && slot.start_time < other.end_time && other.start_time < slot.end_time);
+    end.setCustomValidity(slot.start_time >= slot.end_time ? 'End must be after start on the same day.' : overlaps ? 'Fixed slots on the same day must not overlap.' : '');
+    for (const input of rows[i].querySelectorAll('input, select')) {
+      if (!input.validity.valid) { openFiltersDrawer(); return input.reportValidity(); }
+    }
+  }
   const dailyLimit = document.getElementById('max-classes-per-day');
   if (dailyLimit && !dailyLimit.validity.valid) {
     openFiltersDrawer();
@@ -48,7 +111,7 @@ function validateSchedulingPreferences() {
 }
 
 function updateActiveFiltersBadge() {
-  let count = 0;
+  let count = readFixedSlots().length;
   if (document.getElementById('campus-days')?.value) count++;
   if (earliestInput?.value) count++;
   if (latestInput?.value) count++;
@@ -72,6 +135,8 @@ function refreshPreferenceSummary() {
   const {earliest_start, latest_end, min_gap, max_classes_per_day} = getSchedulingPreferences();
   const days = document.getElementById('campus-days')?.value;
   const parts = [];
+  const fixedCount = readFixedSlots().length;
+  if (fixedCount) parts.push(`${fixedCount} fixed slot${fixedCount === 1 ? '' : 's'}`);
   if (days) parts.push(`${days} days/week`);
   const displayTime = value => {
     const [hour, minute] = value.split(':');
@@ -92,6 +157,9 @@ function refreshPreferenceSummary() {
 
 function restoreSchedulingPreferences(saved) {
   if (!saved) return;
+  document.getElementById('fixed-slots-list').replaceChildren();
+  document.getElementById('add-fixed-slot').disabled = false;
+  for (const slot of (saved.fixed_slots || [])) addFixedSlot(slot);
   document.getElementById('max-classes-per-day').value = saved.max_classes_per_day ?? '';
   if (earliestInput) earliestInput.value = saved.earliest_start || '';
   if (latestInput) latestInput.value = saved.latest_end || '';
@@ -402,6 +470,8 @@ window.renderDailyLimitSuggestion = function(advice, source) {
 
 // Reset All Filters
 function resetAllFilters() {
+  document.getElementById('fixed-slots-list').replaceChildren();
+  document.getElementById('add-fixed-slot').disabled = false;
   document.getElementById('max-classes-per-day').value = '';
   const campusDays = document.getElementById('campus-days');
   if (campusDays) campusDays.value = '';

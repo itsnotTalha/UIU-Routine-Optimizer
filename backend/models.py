@@ -19,7 +19,22 @@ class CourseInput(BaseModel):
     course_name: str = Field(..., min_length=1)
     raw_text: str = Field(..., min_length=1)
 
+class FixedSlot(BaseModel):
+    title: str = Field(default="FYDP / Blocked", max_length=120)
+    day: Literal['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    start_time: int = Field(ge=0, lt=1440, strict=True)
+    end_time: int = Field(gt=0, le=1440, strict=True)
+
+    @model_validator(mode='after')
+    def valid_interval(self):
+        if self.start_time >= self.end_time:
+            raise ValueError('Fixed slot end must be after its start on the same day.')
+        self.title = self.title.strip() or 'FYDP / Blocked'
+        return self
+
+
 class SchedulePreferences(BaseModel):
+    fixed_slots: List[FixedSlot] = Field(default_factory=list, max_length=30)
     earliest_start: Optional[str] = Field(default=None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     latest_end: Optional[str] = Field(default=None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     priority: Literal['strict', 'time_first', 'faculty_first'] = 'strict'
@@ -31,6 +46,10 @@ class SchedulePreferences(BaseModel):
     def valid_window(self):
         if self.earliest_start and self.latest_end and self.earliest_start >= self.latest_end:
             raise ValueError('Earliest start must be before latest finish.')
+        for i, slot in enumerate(self.fixed_slots):
+            for other in self.fixed_slots[:i]:
+                if slot.day == other.day and slot.start_time < other.end_time and other.start_time < slot.end_time:
+                    raise ValueError('Fixed slots on the same day must not overlap.')
         return self
 
 class OptimizeRequest(SchedulePreferences):
@@ -38,6 +57,7 @@ class OptimizeRequest(SchedulePreferences):
     courses: List[CourseInput]
 
 class CourseSectionMapping(BaseModel):
+    is_fixed: bool = False
     course_name: str
     section: Section
 
