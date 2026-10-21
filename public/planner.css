@@ -405,3 +405,52 @@ body.filters-open { overflow:hidden !important; }
  #catalog-search::-webkit-search-cancel-button { -webkit-appearance:none; }
  #mobile-search-dialog .filter-chip { min-height:40px; }
 }
+
+/* Preferences: three readable groups and a persistent action footer. */
+#filters-drawer { max-width:540px; }
+#filters-drawer > :first-child, #filters-drawer > :last-child { flex-shrink:0; }
+#filters-drawer > :first-child { padding:20px; }
+#filters-drawer h3 { font-size:20px; letter-spacing:-.4px; }
+#preferences-summary { font-size:12px; line-height:1.5; margin-top:5px; }
+#btn-close-filters { min-width:44px; min-height:44px; }
+#preferences-body { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:20px; display:flex; flex-direction:column; gap:20px; }
+.preferences-intro { font-size:13px; line-height:1.6; color:var(--text-secondary); }
+.preference-group { min-width:0; flex-shrink:0; border:1px solid var(--border-color); border-radius:16px; padding:16px; background:var(--bg-card); }
+.preference-group legend { padding:0 6px; font-size:15px; font-weight:700; color:var(--text-primary); }
+.preference-step { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; margin-right:6px; border-radius:8px; background:var(--badge-bg); color:var(--accent-light); font-size:12px; }
+.preference-description { font-size:12px; line-height:1.6; color:var(--text-secondary); margin-bottom:14px; }
+.preference-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.preference-field { display:flex; flex-direction:column; gap:8px; min-width:0; }
+.preference-field > label { font-size:12px; font-weight:650; line-height:1.5; }
+.preference-field > p { font-size:12px; line-height:1.6; color:var(--text-muted); }
+.preference-field .select-control, .preference-field input { min-height:46px; width:100%; font-size:15px; background:var(--bg-primary); }
+.preference-section-heading { display:flex; align-items:flex-start; gap:12px; }
+.preference-section-heading > p { flex:1; }
+#clear-time-preferences { flex-shrink:0; min-height:44px; margin-top:-8px; font-size:12px; font-weight:600; color:var(--accent-light); }
+#time-window-help { margin:10px 0 0; }
+.preference-break { margin-top:16px; padding-top:16px; border-top:1px solid var(--border-color); }
+#filters-drawer #global-faculty-checklist { max-height:none; overflow:visible; padding:0; margin-top:12px; }
+#priority-order-status:empty { display:none; }
+#filters-drawer > :last-child { padding:16px 20px max(16px,env(safe-area-inset-bottom)); }
+#btn-apply-filters { min-height:48px; font-size:14px; background:#c7440b; box-shadow:none; }
+#btn-reset-filters { min-height:48px; font-size:13px; }
+#daily-limit-suggestion { width:100%; max-width:440px; padding:18px; border:1px solid var(--accent); border-radius:14px; background:var(--badge-bg); }
+#daily-limit-suggestion[hidden] { display:none; }
+.suggestion-label { display:block; font-size:13px; font-weight:700; color:var(--text-primary); }
+#daily-limit-suggestion-detail { font-size:14px; margin:8px 0 14px; color:var(--text-secondary); }
+#btn-apply-daily-limit { min-height:48px; width:100%; padding:12px; border-radius:10px; background:#c7440b; color:white; font-size:14px; font-weight:650; }
+#btn-apply-daily-limit:disabled { opacity:.6; cursor:wait; }
+.suggestion-note { display:block; margin-top:10px; font-size:12px; line-height:1.5; color:var(--text-secondary); }
+@media(max-width:900px) {
+ #filters-drawer { max-width:none; height:94dvh; padding-bottom:0; }
+ #preferences-body { padding:16px; gap:18px; }
+ #filters-drawer > :first-child { padding:16px; }
+ .preference-field .select-control, .preference-field input { font-size:16px; }
+ #filters-drawer > :last-child { padding-left:16px; padding-right:16px; }
+}
+@media(max-width:440px) {
+ .preference-grid { grid-template-columns:1fr; }
+ .preference-group { padding:14px; }
+ #filters-drawer > :first-child > div > :first-child { display:none; }
+}
+#daily-limit-suggestion:not([hidden]) ~ div #btn-error-open-filters { background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-color); box-shadow:none; }
