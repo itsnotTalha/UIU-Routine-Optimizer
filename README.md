@@ -246,6 +246,18 @@ The Routine constraints section groups campus days, time boundaries, priority mo
 
 Both optimize endpoints accept `earliest_start` and `latest_end` (nullable `HH:MM`, 24-hour), plus `priority` (`strict`, `time_first`, or `faculty_first`). Results include `preference_reports`; the catalog API also returns `exact_matches` and `notices` alongside its paginated schedules. Cache keys include all preference settings.
 
+## Vercel Web Analytics
+
+The HTML entry point includes Vercel's analytics queue and deferred tracking script at `/_vercel/insights/script.js`. This project uses plain HTML/JavaScript with FastAPI, so the Next.js component shown in Vercel's onboarding screen is not needed. No npm package or frontend build step is required for this integration.
+
+1. Enable **Web Analytics** in the Vercel project's **Analytics** tab if it is not already enabled.
+2. Deploy the updated `public/` assets to Vercel.
+3. Visit the deployed site, then check Analytics for visitors and page views. In browser developer tools, verify that the analytics script loads and a page-view request succeeds. Content blockers can prevent collection.
+
+The tracking endpoint is provided by Vercel, not FastAPI. Local hosting may return a harmless 404 for the script; local visits are not collected. The integration tracks page views and does not add custom events for course selections, PDFs, or generated routines.
+
+See [Vercel's Web Analytics setup guide](https://vercel.com/docs/analytics/quickstart).
+
 ## Planner interface development
 
 Edit the files in `frontend/`, then run `python3 scripts/sync_frontend.py`. This synchronizes the deployed `public/` copy and adds content hashes to CSS/JavaScript URLs so updated markup loads matching assets.
