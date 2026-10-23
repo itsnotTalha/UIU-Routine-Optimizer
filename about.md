@@ -13,7 +13,7 @@ flowchart TD
     C --> D[Generate routines]
     D --> E{Matching routines found?}
     E -->|Yes| F[Browse timetable and daily agenda]
-    F --> G[Save up to three routines]
+    F --> G[Save up to 20 routines]
     G --> H[Compare two routines side by side]
     F --> I[Download the weekly timetable as PNG]
     E -->|No| J[Read preference advice and course conflicts]
@@ -121,7 +121,7 @@ A proposed section pair may resolve only that pair’s overlap. The interface st
 
 ### 6. Save and compare routines
 
-- Save up to **three** routine snapshots in the browser shortlist.
+- Save up to **20** routine snapshots in the browser shortlist.
 - Open **Saved routines** or **Shortlist** to review them.
 - Choose two distinct saved routines as **Routine A** and **Routine B**.
 - Compare campus-day counts, weekly gaps, earliest starts, latest finishes, and each day’s start/end range and gaps.
@@ -170,7 +170,7 @@ Meetings use half-open time intervals: a class ending at 11:00 does not overlap 
 | Minimum break | API accepts 0–240 minutes; the interface offers preset values. |
 | Catalog page size | Browser requests 20 routines; API accepts 1–100 per page. |
 | Main optimization search | Up to 100,000 results and 2,000,000 search nodes. Exceeding limits produces an error rather than claiming to enumerate every routine. |
-| Shortlist | Up to three browser-local snapshots. |
+| Shortlist | Up to 20 browser-local snapshots. |
 | Search cache | Up to four searches per process, expiring after 120 seconds. Searches with more than 20,000 results are not cached. |
 
 Cache keys include course section data and preferences. API responses support gzip compression. The frontend debounces course search and reuses catalog cards to reduce rendering work.

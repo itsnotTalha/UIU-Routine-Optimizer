@@ -39,12 +39,13 @@ window.routineComparisonRows = routineComparisonRows;
   const days = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
   const $ = id => document.getElementById(id);
   const storageKey = 'uiu-planner-shortlist-v1';
+  const shortlistLimit = 20;
   let focusedDay = 'All';
   let current = null;
   let saved = [];
   try {
     const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
-    if (Array.isArray(stored)) saved = stored.filter(s => typeof s.key === 'string' && Array.isArray(s.schedule) && s.schedule.every(c => typeof c.course_name === 'string' && c.section && Array.isArray(c.section.slots))).slice(0, 3);
+    if (Array.isArray(stored)) saved = stored.filter(s => typeof s.key === 'string' && Array.isArray(s.schedule) && s.schedule.every(c => typeof c.course_name === 'string' && c.section && Array.isArray(c.section.slots))).slice(0, shortlistLimit);
   } catch (_) { /* Local storage may be unavailable. */ }
   function el(tag, text, className) {
     const node = document.createElement(tag);
@@ -124,8 +125,8 @@ window.routineComparisonRows = routineComparisonRows;
     const id = key(current);
     if (saved.some(s => s.key === id)) saved = saved.filter(s => s.key !== id);
     else {
-      if (saved.length >= 3) {
-        $('planner-save-status').textContent = 'Your shortlist has three routines. Remove one to save another.';
+      if (saved.length >= shortlistLimit) {
+        $('planner-save-status').textContent = `Your shortlist has ${shortlistLimit} routines. Remove one to save another.`;
         openShortlist(); return;
       }
       saved.push({ key:id, schedule:structuredClone(current), label:`Routine ${(window.scheduleOffset || 0) + selectedScheduleIndex + 1}`, source: $('toolbar-routine-label').textContent });

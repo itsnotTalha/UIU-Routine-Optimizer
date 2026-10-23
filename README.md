@@ -262,7 +262,7 @@ See [Vercel's Web Analytics setup guide](https://vercel.com/docs/analytics/quick
 
 Edit the files in `frontend/`, then run `python3 scripts/sync_frontend.py`. This synchronizes the deployed `public/` copy and adds content hashes to CSS/JavaScript URLs so updated markup loads matching assets.
 
-The planner supports course search and selected-only filtering, per-course faculty order, shared scheduling preferences, day/agenda/week views, and a browser-local shortlist of up to three routines for comparison. The shortlist stores snapshots; changing a PDF or preferences does not revalidate previously saved routines.
+The planner supports course search and selected-only filtering, per-course faculty order, shared scheduling preferences, day/agenda/week views, and a browser-local shortlist of up to 20 routines for comparison. The shortlist stores snapshots; changing a PDF or preferences does not revalidate previously saved routines.
 
 Design references: [Morgen calendar navigation](https://www.morgen.so/guides/how-to-navigate-your-calendar-in-morgen) and [Coursicle schedule planning](https://www.coursicle.com/college-schedule-maker/).
 
