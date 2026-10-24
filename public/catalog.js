@@ -1,10 +1,58 @@
 let catalog = null;
 let selectedCourses = new Map();
+let sectionPriorities = new Map();
 let catalogRequest = null;
 let catalogTotal = 0;
 let catalogMetrics = [];
 let requestVersion = 0;
 let activeProgramFilter = '';
+
+
+function catalogSelections() {
+  return [...selectedCourses].map(([course_id, faculties]) => {
+    const course = catalog?.courses.find(c => c.id === course_id);
+    const priorities = sectionPriorities.get(course_id) || {};
+    return {course_id, faculties: [...faculties], section_priorities: Object.fromEntries(faculties.map(faculty =>
+      [faculty, (Array.isArray(priorities[faculty]) ? priorities[faculty] : []).filter(name =>
+        course?.sections.some(section => section.faculty === faculty && section.name === name))]))};
+  });
+}
+
+function renderSectionPriorities(course, faculties) {
+  const container = document.createElement('div');
+  container.className = 'section-priorities';
+  for (const faculty of faculties) {
+    const group = document.createElement('fieldset');
+    const legend = document.createElement('legend');
+    legend.textContent = `${faculty} · Section priority`;
+    group.append(legend);
+    const hint = document.createElement('p');
+    hint.textContent = 'Choose sections in priority order. Others remain available as fallbacks. Click again to remove a priority.';
+    group.append(hint);
+    const priorities = catalogSelections().find(s => s.course_id === course.id)?.section_priorities[faculty] || [];
+    for (const section of course.sections.filter(s => s.faculty === faculty)) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      const rank = priorities.indexOf(section.name);
+      button.className = `faculty-pill section-priority-choice${rank >= 0 ? ' active' : ''}`;
+      button.setAttribute('aria-pressed', String(rank >= 0));
+      button.textContent = `${rank >= 0 ? `#${rank + 1} · ` : ''}Section ${section.name} · ${section.slots.map(s => `${s.day} ${s.start_time}–${s.end_time}`).join(' / ')}`;
+      button.onclick = event => {
+        event.stopPropagation();
+        const current = catalogSelections().find(s => s.course_id === course.id)?.section_priorities[faculty] || [];
+        const updated = current.includes(section.name) ? current.filter(name => name !== section.name) : [...current, section.name];
+        sectionPriorities.set(course.id, {...sectionPriorities.get(course.id), [faculty]: updated});
+        invalidateCatalogResults();
+        persistCatalog();
+        renderCatalogList();
+        renderSelectedCourses();
+      };
+      group.append(button);
+    }
+    container.append(group);
+  }
+  return container;
+}
 
 const pdfInput = document.getElementById('routine-pdf');
 const pdfButton = document.getElementById('btn-optimize-pdf');
@@ -155,7 +203,7 @@ function invalidateCatalogResults() {
 function persistCatalog() {
   try {
     localStorage.setItem('uiu-pdf-selection', JSON.stringify({
-      id: catalog.id, campus_days: getCampusDays(), ...getSchedulingPreferences(), selections: [...selectedCourses].map(([course_id, faculties]) => ({course_id, faculties}))
+      id: catalog.id, campus_days: getCampusDays(), ...getSchedulingPreferences(), selections: catalogSelections()
     }));
   } catch (_) { /* Safe fallback */ }
 }
@@ -605,7 +653,7 @@ function renderCatalogList() {
       }
     }
 
-    const renderKey = JSON.stringify([catalog.id, selectedCourses.get(course.id) ?? null, matchedAcronym ? query : '']);
+    const renderKey = JSON.stringify([catalog.id, sectionPriorities.get(course.id), selectedCourses.get(course.id) ?? null, matchedAcronym ? query : '']);
     const previous = existing.get(course.id);
     if (previous?.dataset.renderKey === renderKey) {
       fragment.appendChild(previous);
@@ -754,6 +802,7 @@ function renderCatalogList() {
       }
 
       facultyWrapper.appendChild(pillsRow);
+      facultyWrapper.appendChild(renderSectionPriorities(course, preferences));
 
       card.appendChild(facultyWrapper);
     }
@@ -812,7 +861,7 @@ function renderSelectedCourses() {
     const course = catalog.courses.find(c => c.id === id);
     if (!course) return;
 
-    const renderKey = JSON.stringify([catalog.id, preferences]);
+    const renderKey = JSON.stringify([catalog.id, preferences, sectionPriorities.get(id)]);
     const oldCard = existing.get(id);
     if (oldCard?.dataset.renderKey === renderKey) {
       fragment.append(oldCard);
@@ -919,6 +968,7 @@ function renderSelectedCourses() {
       pillsRow.appendChild(facPill);
     }
     facultySection.appendChild(pillsRow);
+    facultySection.appendChild(renderSectionPriorities(course, preferences));
 
     card.appendChild(facultySection);
 
@@ -1001,6 +1051,7 @@ pdfInput.addEventListener('change', async () => {
       catalog = data;
       catalog.is_default = false;
       selectedCourses = new Map();
+      sectionPriorities.clear();
       searchInput.value = '';
       activeProgramFilter = '';
       invalidateCatalogResults();
@@ -1064,6 +1115,7 @@ if (btnClearSearch) {
 if (btnClearSelected) {
   btnClearSelected.addEventListener('click', () => {
     selectedCourses.clear();
+    sectionPriorities.clear();
     invalidateCatalogResults();
     persistCatalog();
     renderCatalogList();
@@ -1167,7 +1219,7 @@ pdfButton.addEventListener('click', (e) => {
   if (!validateSchedulingPreferences()) return;
   catalogRequest = {
     catalog_id: catalog.id, campus_days: getCampusDays(), ...getSchedulingPreferences(),
-    selections: [...selectedCourses].map(([course_id, faculties]) => ({course_id, faculties: [...faculties]}))
+    selections: catalogSelections()
   };
   setWorkspaceView('schedules');
   fetchCatalogSchedules();
@@ -1185,7 +1237,7 @@ if (btnErrorResetFilters) {
         catalog_id: catalog.id,
         campus_days: null,
         ...getSchedulingPreferences(),
-        selections: [...selectedCourses].map(([course_id, faculties]) => ({course_id, faculties: [...faculties]}))
+        selections: catalogSelections()
       };
       setWorkspaceView('schedules');
       fetchCatalogSchedules();
@@ -1208,6 +1260,7 @@ if (btnRevertDefault) {
   btnRevertDefault.addEventListener('click', async () => {
     localStorage.removeItem('uiu-pdf-selection');
     selectedCourses.clear();
+    sectionPriorities.clear();
     await loadDefaultRoutine();
   });
 }
@@ -1262,6 +1315,7 @@ async function loadDefaultRoutine() {
         document.getElementById('campus-days').value = [2, 3, 4, 5].includes(saved.campus_days) ? String(saved.campus_days) : '';
         refreshPreferenceSummary();
         selectedCourses = new Map((saved.selections || []).filter(s => catalog.courses.some(c => c.id === s.course_id)).map(s => [s.course_id, s.faculties]));
+        sectionPriorities = new Map((saved.selections || []).map(s => [s.course_id, s.section_priorities || {}]));
         renderCatalogList();
         renderSelectedCourses();
         return;

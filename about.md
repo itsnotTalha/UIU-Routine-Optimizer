@@ -23,7 +23,7 @@ flowchart TD
 
 ### 1. Load course offerings
 
-- **Bundled routine:** The application attempts to load its default catalog on startup.
+- **Bundled routine:** The application attempts to load its default catalog on startup. Replacing the bundled PDF automatically refreshes the parsed catalog on the next default-catalog request, even with the same filename. Cached catalogs are checked against a SHA-256 hash of the PDF contents.
 - **PDF import:** Upload a supported UIU course-offering PDF through the file picker or drag-and-drop area. Import progress, catalog information, and parsing warnings are displayed.
 - **Return to the default routine:** Replace a custom catalog with the bundled routine.
 - **Source PDF:** View the routine PDF exposed by the server when available.
@@ -49,6 +49,7 @@ A section can contain multiple meetings, such as lectures on two days or a lab. 
 - Add or remove individual courses, or clear the selection.
 - Allow any teacher or select specific teachers for each course.
 - Reorder courses and teachers in Preferences using drag controls or arrow controls to express priority.
+- For each selected faculty member, view their sections and meeting times on the course card or in Preferences. Click sections in preferred order; click again to remove a priority. Unranked sections remain available as fallbacks. Section priorities are saved with the catalog selection.
 
 On mobile, search opens in a dialog sized to the visible viewport. Tapping its **Done** button clears the query and closes the dialog while retaining selected courses. A separate clear-search button lets the user clear the query and continue searching.
 
@@ -76,7 +77,7 @@ The drawer includes a preference summary, active-filter indicators, **Clear time
 
 The browser submits the selected courses and preferences to the backend. The solver chooses one section per course and rejects overlapping meetings.
 
-The current interface submits **strict** preferences: regular class times, teacher choices, and minimum breaks must be satisfied. Among eligible routines, ordered teacher preferences influence ranking, followed by campus-day and idle-gap metrics.
+The current interface submits **strict** preferences: regular class times, teacher choices, and minimum breaks must be satisfied. Among eligible routines, ordered teacher preferences influence ranking, followed by section priorities for those teachers, then campus-day and idle-gap metrics.
 
 Results support:
 
@@ -245,6 +246,7 @@ Run backend tests and frontend regression checks:
 venv/bin/python -m pytest backend/tests -q
 node frontend/tests/preference_suggestions.cjs
 node frontend/tests/routine_comparison.cjs
+node frontend/tests/section_priorities.cjs
 ```
 
 If unrelated globally installed pytest plugins interfere with collection, disable automatic plugin loading:
