@@ -555,21 +555,24 @@ if (btnResetFilters) {
 function renderRoutinePriorityNote(report) {
   const note = document.getElementById('routine-priority-note');
   if (!note) return;
-  const matches = report?.priority_matches || [];
-  note.hidden = !matches.length;
+  const missed = (report?.priority_matches || []).filter(item =>
+    item.faculty_rank !== 1 || (item.has_section_priority && item.section_rank !== 1));
+  note.hidden = !missed.length;
+  note.classList.toggle('priority-warning', missed.length > 0);
   const list = document.getElementById('routine-priority-matches');
   list.replaceChildren();
-  if (!matches.length) return;
-  const facultyFirst = matches.filter(item => item.faculty_rank === 1).length;
-  const sectionChoices = matches.filter(item => item.has_section_priority);
-  const sectionFirst = sectionChoices.filter(item => item.section_rank === 1).length;
-  document.getElementById('routine-priority-summary').textContent =
-    `Priority match · Faculty #1: ${facultyFirst}/${matches.length}` +
-    (sectionChoices.length ? ` · Section #1: ${sectionFirst}/${sectionChoices.length}` : '');
-  for (const item of matches) {
+  document.getElementById('routine-priority-summary').textContent = missed.length
+    ? `⚠ Lower-priority choices · ${missed.length} course${missed.length === 1 ? '' : 's'}` : '';
+  for (const item of missed) {
+    const changes = [];
+    if (item.faculty_rank !== 1) {
+      changes.push(`Faculty #1 → ${item.faculty_rank ? `#${item.faculty_rank}` : 'unranked fallback'} · ${item.faculty}`);
+    }
+    if (item.has_section_priority && item.section_rank !== 1) {
+      changes.push(`Section priority #1 → ${item.section_rank ? `#${item.section_rank}` : 'unranked fallback'} · Section ${item.section}`);
+    }
     const row = document.createElement('li');
-    row.textContent = `${item.course_name.split(' — ')[0]}: ${item.faculty} (${item.faculty_rank ? `#${item.faculty_rank}` : 'fallback'}) · Section ${item.section}` +
-      (item.has_section_priority ? ` (${item.section_rank ? `#${item.section_rank}` : 'fallback'})` : ' (unranked)');
+    row.textContent = `${item.course_name.split(' — ')[0]}: ${changes.join('; ')}`;
     list.append(row);
   }
 }
@@ -582,7 +585,7 @@ window.renderPreferenceReport = function(index) {
   panel.hidden = !report;
   if (!report) return;
   document.getElementById('preference-report-title').textContent = report.exact_match
-    ? 'Matches all your preferences'
+    ? 'Meets your time, teacher and break filters'
     : `Alternative · ${report.faculty_mismatches ? `${report.faculty_mismatches} faculty preference${report.faculty_mismatches === 1 ? '' : 's'} unmet` : 'Preferred faculty retained'} · ${report.outside_minutes} weekly minutes outside your time window`;
   panel.classList.toggle('preference-alternative', !report.exact_match);
   const list = document.getElementById('preference-report-list');
