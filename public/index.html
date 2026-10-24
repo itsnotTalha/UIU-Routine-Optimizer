@@ -38,7 +38,7 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <!-- Custom Stylesheet -->
   <link rel="stylesheet" href="styles.css?v=29553dc15417">
-  <link rel="stylesheet" href="planner.css?v=81bd8083decb">
+  <link rel="stylesheet" href="planner.css?v=5f34ec578fc9">
   <script>
     tailwind.config = {
       theme: {
@@ -423,6 +423,10 @@ Wednesday 09:50-11:10</pre>
           <div class="calendar-view-toggle" aria-label="Schedule view"><button type="button" data-calendar-view="agenda" aria-pressed="true">Agenda</button><button type="button" data-calendar-view="grid" aria-pressed="false">Week grid</button></div>
         </div>
         </div>
+        <details id="routine-priority-note" hidden>
+          <summary id="routine-priority-summary"></summary>
+          <ul id="routine-priority-matches"></ul>
+        </details>
         <nav id="planner-days" aria-label="Choose a day"></nav>
         <div id="mobile-agenda" aria-label="Classes by day"></div>
         <!-- Weekly Timetable Card -->
@@ -752,8 +756,8 @@ Wednesday 09:50-11:10</pre>
   <dialog id="shortlist-dialog" aria-labelledby="shortlist-title"><header><div><p class="planner-eyebrow">KEEP YOUR OPTIONS OPEN</p><h2 id="shortlist-title">Your shortlist</h2></div><button id="close-shortlist" type="button" aria-label="Close shortlist">✕</button></header><p>Save up to 20 routines to compare days, breaks and teachers. Stored on this browser.</p><div id="routine-comparison"></div><div id="shortlist-content"></div></dialog>
   <script src="app.js?v=9914b7948d94"></script>
   <script src="priority-sorter.js?v=aeb58fa450e5"></script>
-  <script src="preferences.js?v=3cd556ce8790"></script>
-  <script src="catalog.js?v=dbfa0a278c52"></script>
+  <script src="preferences.js?v=e302809693ef"></script>
+  <script src="catalog.js?v=13cbe21d9ef8"></script>
   <script src="mobile.js?v=308bcfe647d2"></script>
   <script src="mobile-search.js?v=067410366aff"></script>
   <script src="mobile-schedule.js?v=ccdfa2ab2453"></script>

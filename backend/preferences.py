@@ -79,7 +79,10 @@ def preference_score(schedule, preferences):
     rank = faculty_priority_rank(schedule, preferences)
     min_gap = preferences.get('min_gap') if preferences else None
     gaps, _ = gap_violations(schedule, min_gap)
-    primary = (mismatch, rank, outside, gaps) if preferences.get('priority') == 'faculty_first' else (outside, gaps, mismatch, rank)
+    if preferences.get('priority') == 'strict':
+        primary = (rank, outside, gaps, mismatch)
+    else:
+        primary = (mismatch, rank, outside, gaps) if preferences.get('priority') == 'faculty_first' else (outside, gaps, mismatch, rank)
     return (*primary, *schedule_score(schedule))
 
 
@@ -91,6 +94,25 @@ def filter_strict(courses, preferences):
             if (not faculty.get(course['course_name']) or s['faculty'] in faculty[course['course_name']])
             and all(outside_minutes(slot, earliest, latest) == 0 for slot in s['slots'])])
             for course in courses]
+
+
+def priority_matches(schedule, preferences):
+    selected = {item['course_name']: item['section'] for item in schedule if not item.get('is_fixed')}
+    matches = []
+    faculties = preferences.get('faculties', {})
+    for name in preferences.get('course_order', list(faculties)):
+        section = selected.get(name)
+        if section is None:
+            continue
+        teachers = faculties.get(name, [])
+        sections = preferences.get('section_priorities', {}).get(name, {}).get(section['faculty'], [])
+        if not teachers and not sections:
+            continue
+        matches.append(dict(course_name=name, faculty=section['faculty'], section=section['name'],
+                            faculty_rank=teachers.index(section['faculty']) + 1 if section['faculty'] in teachers else None,
+                            section_rank=sections.index(section['name']) + 1 if section['name'] in sections else None,
+                            has_section_priority=bool(sections)))
+    return matches
 
 
 def preference_report(schedule, preferences):
@@ -112,7 +134,7 @@ def preference_report(schedule, preferences):
         warnings.extend(gap_warns)
     outside, mismatch = penalties(schedule, preferences)
     return dict(exact_match=not warnings, outside_minutes=outside,
-                faculty_mismatches=mismatch, warnings=warnings)
+                faculty_mismatches=mismatch, warnings=warnings, priority_matches=priority_matches(schedule, preferences or {}))
 
 
 def availability_notices(courses, preferences):

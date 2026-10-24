@@ -1186,7 +1186,7 @@ async function fetchCatalogSchedules(offset = 0) {
     const totalCount = catalogTotal || 0;
     const matchCount = data.exact_matches;
     const matchInfo = (matchCount !== undefined && matchCount !== null) 
-      ? ` · ${matchCount.toLocaleString()} match all preferences` 
+      ? ` · ${matchCount.toLocaleString()} meet time, teacher and break filters`
       : '';
     combinationsCount.textContent = `Found ${totalCount.toLocaleString()} conflict-free combinations${matchInfo}`;
     document.getElementById('schedule-pagination').hidden = false;
