@@ -493,3 +493,8 @@ body.filters-open { overflow:hidden !important; }
 .section-priorities legend { font-size: 12px; font-weight: 700; }
 .section-priorities p { font-size: 11px; color: var(--text-muted); margin: 4px 0; }
 .section-priority-choice { display: block; width: 100%; text-align: left; padding: 7px 9px; margin-top: 5px; border-radius: 8px; font-size: 12px; }
+
+#routine-priority-note { font-size: 11px; color: var(--text-muted); margin: 4px 0 8px; line-height: 1.5; }
+#routine-priority-note summary { cursor: pointer; width: fit-content; max-width: 100%; }
+#routine-priority-note p { margin: 6px 0; }
+#routine-priority-note ul { margin: 4px 0; padding-left: 16px; }

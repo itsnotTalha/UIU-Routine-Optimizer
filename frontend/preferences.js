@@ -552,9 +552,32 @@ if (btnResetFilters) {
   btnResetFilters.addEventListener('click', resetAllFilters);
 }
 
+function renderRoutinePriorityNote(report) {
+  const note = document.getElementById('routine-priority-note');
+  if (!note) return;
+  const matches = report?.priority_matches || [];
+  note.hidden = !matches.length;
+  const list = document.getElementById('routine-priority-matches');
+  list.replaceChildren();
+  if (!matches.length) return;
+  const facultyFirst = matches.filter(item => item.faculty_rank === 1).length;
+  const sectionChoices = matches.filter(item => item.has_section_priority);
+  const sectionFirst = sectionChoices.filter(item => item.section_rank === 1).length;
+  document.getElementById('routine-priority-summary').textContent =
+    `Priority match · Faculty #1: ${facultyFirst}/${matches.length}` +
+    (sectionChoices.length ? ` · Section #1: ${sectionFirst}/${sectionChoices.length}` : '');
+  for (const item of matches) {
+    const row = document.createElement('li');
+    row.textContent = `${item.course_name.split(' — ')[0]}: ${item.faculty} (${item.faculty_rank ? `#${item.faculty_rank}` : 'fallback'}) · Section ${item.section}` +
+      (item.has_section_priority ? ` (${item.section_rank ? `#${item.section_rank}` : 'fallback'})` : ' (unranked)');
+    list.append(row);
+  }
+}
+
 window.renderPreferenceReport = function(index) {
   const panel = document.getElementById('preference-report');
   const report = window.schedulePreferenceReports?.[index];
+  renderRoutinePriorityNote(report);
   if (!panel) return;
   panel.hidden = !report;
   if (!report) return;

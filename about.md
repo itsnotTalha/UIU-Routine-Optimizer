@@ -88,6 +88,7 @@ Results support:
 - Campus-day counts and total weekly gaps.
 - Class details showing course, section, teacher, room where available, and meeting times.
 - Preference reports when supplied by the backend.
+- A compact priority-match note showing how many first-choice faculty and sections were used. Expand it to see each course’s actual rank or fallback choice.
 
 The backend also supports `time_first` and `faculty_first` ranking modes for API clients. These can return alternatives with time, teacher, or break warnings. They are not selectable priority modes in the current preferences drawer. Overlap prevention, allowed days, exact campus-day counts, and daily class limits remain hard constraints.
 
@@ -247,6 +248,7 @@ venv/bin/python -m pytest backend/tests -q
 node frontend/tests/preference_suggestions.cjs
 node frontend/tests/routine_comparison.cjs
 node frontend/tests/section_priorities.cjs
+node frontend/tests/priority_note.cjs
 ```
 
 If unrelated globally installed pytest plugins interfere with collection, disable automatic plugin loading:
