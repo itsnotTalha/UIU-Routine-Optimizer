@@ -288,3 +288,11 @@ Both optimization endpoints accept `fixed_slots`, for example:
 ```
 
 Times are integer minutes from midnight. Omit `fixed_slots` for the existing behavior.
+
+### Updating the default routine PDF
+
+Replace the PDF in `routines/` and restart or redeploy as appropriate for your hosting. Keep only the intended default PDF in that directory: when several exist, the last filename in sorted order is selected. `backend/routines/` is used if `routines/` contains no PDFs.
+
+The next request to `/api/catalogs/default` checks the PDF content hash and rebuilds any outdated parsed catalog automatically, including when the filename stays the same. Manual deletion of `default.json` is no longer required. Invalid replacements return an error instead of silently serving an outdated catalog. The source-PDF endpoint uses the same file selection.
+
+Reload the page to fetch the updated catalog. If your browser is restoring a custom upload, choose **Return to the default routine**. Existing saved routine snapshots do not update automatically. Browser uploads create custom catalogs and do not replace the shared default. A `default.json` catalog can still be used when no bundled PDF exists.

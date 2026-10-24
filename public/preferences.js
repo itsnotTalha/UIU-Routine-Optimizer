@@ -403,6 +403,7 @@ function renderGlobalFacultyChecklist() {
     });
     if (!names.length) group.append(node('p', 'Any faculty. Choose teachers on the course card to rank them here.'));
     group.append(teachers);
+    group.append(renderSectionPriorities(course, names));
     container.append(group);
   });
   container.querySelectorAll('.priority-move-actions').forEach(actions => {
@@ -444,7 +445,7 @@ async function applySchedulingPreferences(source = null) {
       catalog_id: catalog.id,
       campus_days: getCampusDays(),
       ...getSchedulingPreferences(),
-      selections: [...selectedCourses].map(([course_id, faculties]) => ({course_id, faculties: [...faculties]}))
+      selections: catalogSelections()
     };
     await fetchCatalogSchedules();
   } else if (typeof optimizeRoutine === 'function' && courses.length > 0) {
@@ -456,7 +457,7 @@ btnApplyFilters?.addEventListener('click', () => applySchedulingPreferences());
 function dailyLimitContext() {
   return JSON.stringify({
     preferences: getSchedulingPreferences(), days: getCampusDays(),
-    catalog: catalog?.id, selections: [...selectedCourses],
+    catalog: catalog?.id, selections: typeof catalogSelections === 'function' ? catalogSelections() : [...selectedCourses],
     manual: [...document.querySelectorAll('.course-name-input, .course-text-input')].map(input => input.value)
   });
 }

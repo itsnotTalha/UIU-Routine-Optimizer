@@ -77,6 +77,7 @@ class SavedCourse(BaseModel):
 class CatalogSelection(BaseModel):
     course_id: str
     faculties: List[str] = Field(default_factory=list)
+    section_priorities: dict[str, List[str]] = Field(default_factory=dict)
 
 class CatalogOptimizeRequest(SchedulePreferences):
     campus_days: Optional[Literal[2, 3, 4, 5]] = None

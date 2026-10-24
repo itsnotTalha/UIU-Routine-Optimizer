@@ -55,54 +55,63 @@ def ranked_schedules(courses, campus_days, preferences=None):
     return schedules
 
 
+def default_pdf_path():
+    """Use the same bundled source for parsing and the source-PDF endpoint."""
+    for directory in (ROUTINES_DIR, BACKEND_ROUTINES_DIR):
+        pdfs = sorted(directory.glob('*.pdf'))
+        if pdfs:
+            return pdfs[-1]
+    return None
+
+
+def cache_default_catalog(catalog):
+    data = json.dumps(catalog, ensure_ascii=False)
+    for directory in (CATALOG_DIR, TMP_CATALOG_DIR):
+        temporary = directory / f'.default-{uuid4().hex}.tmp'
+        try:
+            directory.mkdir(parents=True, exist_ok=True)
+            temporary.write_text(data, encoding='utf-8')
+            temporary.replace(directory / 'default.json')
+            return
+        except OSError:
+            pass
+        finally:
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                pass
+    # A read-only cache must not prevent using a successfully parsed PDF.
+
+
 def get_default_catalog():
-    # 1. Check in TMP_CATALOG_DIR
-    tmp_path = TMP_CATALOG_DIR / 'default.json'
-    if tmp_path.exists():
+    source = default_pdf_path()
+    content = None
+    if source is not None:
         try:
-            return json.loads(tmp_path.read_text(encoding='utf-8'))
-        except Exception:
-            pass
-
-    # 2. Check bundled default.json
-    bundled_path = CATALOG_DIR / 'default.json'
-    if bundled_path.exists():
+            content = source.read_bytes()
+        except OSError as exc:
+            raise HTTPException(503, 'The default routine PDF could not be read.') from exc
+    digest = hashlib.sha256(content).hexdigest() if content is not None else None
+    for directory in (TMP_CATALOG_DIR, CATALOG_DIR):
         try:
-            return json.loads(bundled_path.read_text(encoding='utf-8'))
-        except Exception:
-            pass
+            cached = json.loads((directory / 'default.json').read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(cached, dict) or not isinstance(cached.get('courses'), list):
+            continue
+        if source is None or (cached.get('source_sha256') == digest and cached.get('filename') == source.name):
+            return dict(cached, id='default', is_default=True)
 
-    # 3. Check routines directories for any .pdf routine
-    for rdir in (ROUTINES_DIR, BACKEND_ROUTINES_DIR):
-        if rdir.exists():
-            pdfs = sorted(rdir.glob('*.pdf'))
-            if pdfs:
-                latest_pdf = pdfs[-1]
-                try:
-                    catalog = import_pdf(latest_pdf.read_bytes())
-                    catalog['id'] = 'default'
-                    catalog['filename'] = latest_pdf.name
-                    catalog['is_default'] = True
-                    try:
-                        CATALOG_DIR.mkdir(parents=True, exist_ok=True)
-                        (CATALOG_DIR / 'default.json').write_text(json.dumps(catalog, ensure_ascii=False), encoding='utf-8')
-                    except OSError:
-                        TMP_CATALOG_DIR.mkdir(parents=True, exist_ok=True)
-                        (TMP_CATALOG_DIR / 'default.json').write_text(json.dumps(catalog, ensure_ascii=False), encoding='utf-8')
-                    return catalog
-                except Exception:
-                    pass
+    if source is not None:
+        try:
+            parsed = import_pdf(content)
+        except ValueError as exc:
+            raise HTTPException(422, f'The default routine PDF could not be parsed: {exc}') from exc
+        parsed.update(id='default', filename=source.name, is_default=True, source_sha256=digest)
+        cache_default_catalog(parsed)
+        return parsed
 
-    # 4. Fallback: check any .json in CATALOG_DIR
-    if CATALOG_DIR.exists():
-        json_files = sorted(CATALOG_DIR.glob('[a-f0-9]*.json'), key=lambda p: p.stat().st_mtime, reverse=True)
-        if json_files:
-            cat = json.loads(json_files[0].read_text(encoding='utf-8'))
-            cat['id'] = 'default'
-            cat['is_default'] = True
-            return cat
-
-    raise HTTPException(404, 'No default routine catalog found. Please upload a PDF.')
+    raise HTTPException(404, 'No default routine catalog found. Add a bundled routine PDF or upload a custom PDF.')
 
 
 def load_catalog(catalog_id):
@@ -152,18 +161,18 @@ def upload_catalog(file: UploadFile):
 
 @router.get('/catalogs/default')
 def get_default_catalog_endpoint():
-    return get_default_catalog()
+    from fastapi.responses import JSONResponse
+    return JSONResponse(get_default_catalog(), headers={'Cache-Control': 'no-store'})
 
 
 @router.get('/catalogs/pdf')
 def get_default_pdf():
-    for rdir in (ROUTINES_DIR, BACKEND_ROUTINES_DIR):
-        if rdir.exists():
-            pdfs = sorted(rdir.glob('*.pdf'))
-            if pdfs:
-                from fastapi.responses import FileResponse
-                return FileResponse(pdfs[-1], media_type='application/pdf', filename=pdfs[-1].name)
-    raise HTTPException(404, 'Routine PDF not found.')
+    source = default_pdf_path()
+    if source is None:
+        raise HTTPException(404, 'Routine PDF not found.')
+    from fastapi.responses import FileResponse
+    return FileResponse(source, media_type='application/pdf', filename=source.name,
+                        headers={'Cache-Control': 'no-cache'})
 
 
 @router.get('/catalogs/{catalog_id}')
@@ -186,6 +195,7 @@ def optimize_catalog(request: CatalogOptimizeRequest):
         max_classes_per_day=request.max_classes_per_day,
         prioritized_faculties=request.prioritized_faculties or [],
         faculties={},
+        section_priorities={},
         course_order=[]
     )
     for selection in request.selections:
@@ -198,7 +208,12 @@ def optimize_catalog(request: CatalogOptimizeRequest):
         faculties = set(selection.faculties)
         if not faculties <= {s['faculty'] for s in course['sections']}:
             raise HTTPException(400, f"Unknown faculty for {course['code']}.")
+        for teacher, sections in selection.section_priorities.items():
+            available_sections = {s['name'] for s in course['sections'] if s['faculty'] == teacher}
+            if teacher not in faculties or not set(sections) <= available_sections or len(sections) != len(set(sections)):
+                raise HTTPException(400, f"Invalid section priorities for {course['code']}.")
         name = f"{course['code']} — {course['title']} ({course['program']})"
+        preferences['section_priorities'][name] = selection.section_priorities
         preferences['course_order'].append(name)
         preferences['faculties'][name] = [f for f in selection.faculties if f in faculties]
         courses.append(dict(course_name=name, sections=course['sections']))

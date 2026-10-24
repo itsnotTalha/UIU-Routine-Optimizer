@@ -40,7 +40,14 @@ def faculty_priority_rank(schedule, preferences):
         wanted = faculty.get(name, [])
         teacher = chosen.get(name)
         ranks.append(wanted.index(teacher) if teacher in wanted else len(wanted))
-    return tuple(ranks)
+    # Faculty order remains primary; section choices break ties before schedule metrics.
+    section_ranks = []
+    selected = {item['course_name']: item['section'] for item in schedule if not item.get('is_fixed')}
+    for name in preferences.get('course_order', list(faculty)):
+        section = selected.get(name)
+        wanted = preferences.get('section_priorities', {}).get(name, {}).get(section['faculty'], []) if section else []
+        section_ranks.append(wanted.index(section['name']) if section and section['name'] in wanted else len(wanted))
+    return tuple(ranks + section_ranks)
 
 
 def gap_violations(schedule, min_gap):
